@@ -1,10 +1,7 @@
 package iuh.fit.se.gui;
 
-import DAO.EnrollmentAnswerDAO;
-import DAO.EnrollmentDAO;
-import DAO.RoomDAO;
-import DAO.TakeExamDAO;
-import Model.*;
+import entity.Room;
+import entity.User;
 
 import javax.swing.*;
 import java.awt.*;

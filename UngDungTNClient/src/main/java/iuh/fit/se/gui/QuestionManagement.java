@@ -1,10 +1,11 @@
 package iuh.fit.se.gui;
 
-import dao.UserDAO;
+import entity.Exam;
 import entity.Question;
 import entity.User;
-import service.impl.ExamServiceImpl;
-import service.impl.QuestionServiceImpl;
+import iuh.fit.se.util.ServiceFactory;
+import service.ExamService;
+import service.QuestionService;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -19,46 +20,50 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 public class QuestionManagement extends JFrame {
-    private final User loginUser;
+    private  User loginUser;
+    private  QuestionService questionService;
+    private  ExamService examService;
+
     private JPanel panelViewQuestionManagement;
+    private JTextField textfieldQuestionIDViewQuestionManagement;
     private JTextField textfieldExamIDViewQuestionManagement;
     private JTextField textfieldQuestionContentViewQuestionManagement;
+    private JComboBox<String> comboboxLevelViewQuestionManagement;
     private JButton buttonAddViewQuestionManagement;
     private JButton buttonUpdateViewQuestionManagement;
     private JButton buttonDeleteViewQuestionManagement;
-    private JTable tableViewQuestionManagement;
     private JButton buttonQuestionAnswerViewQuestionMangagement;
     private JButton buttonBackViewQuestionManagement;
-    private JTextField textfieldFindViewQuestionManagement;
-    private JLabel labelFindViewQuestionManagement;
-    private JLabel labelExamIDViewQuestionManagement;
-    private JLabel labelQuestionContentViewQuestionManagement;
-    private JLabel labelLevelViewQuestionManagenment;
-    private JComboBox<String> comboboxLevelViewQuestionManagement;
-    private JTextField textfieldQuestionIDViewQuestionManagement;
-    private JLabel labelQuestionIDViewQuestionManagement;
     private JButton buttonRefreshViewQuestionManagement;
+    private JTextField textfieldFindViewQuestionManagement;
+    private JTable tableViewQuestionManagement;
+
     private DefaultTableModel columnModel;
     private DefaultTableModel rowModel;
     private TableRowSorter<TableModel> rowSorter = null;
-    private List<Question> list;
+    private List<Question> questionList;
     private Question chosenQuestion = null;
-
-    private QuestionServiceImpl questionService;
-    private ExamServiceImpl examService;
 
     public QuestionManagement(User user) {
         this.loginUser = user;
+
         try {
-            this.questionService = new QuestionServiceImpl();
-            this.examService = new ExamServiceImpl();
-        } catch (RemoteException e) {
-            JOptionPane.showMessageDialog(this, "Error initializing services: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            System.exit(1);
+            this.questionService = ServiceFactory.getQuestionService();
+            this.examService = ServiceFactory.getExamService();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi kết nối service: " + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            this.dispose();
+            return;
         }
 
         initComponents();
         addActionEvent();
+
         this.setTitle("Quản Lý Câu Hỏi");
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -66,299 +71,415 @@ public class QuestionManagement extends JFrame {
         this.pack();
         this.setLocationRelativeTo(null);
         this.setVisible(true);
-        fillDataToTable();
+
+        loadQuestionData();
         makeTableSearchable();
     }
 
-    public static void main(String[] args) {
-        // User admin = new User("admin", "admin", "admin", true); // Old User constructor
-        User admin = new User("admin", "Admin User", UserDAO.encryptPassword("admin"), true);
-        EventQueue.invokeLater(() -> new QuestionManagement(admin));
-    }
-
     private void initComponents() {
-        textfieldQuestionIDViewQuestionManagement.setEnabled(false);
-        tableViewQuestionManagement.setDefaultEditor(Object.class, null);
-        tableViewQuestionManagement.getTableHeader().setReorderingAllowed(false);
         columnModel = new DefaultTableModel(
                 new Object[][]{},
-                new String[]{"Mã Câu hỏi", "Mã Đề thi", "Mức độ khó", "Nội dung"}
-        );
-        tableViewQuestionManagement.setModel(columnModel);
-        rowModel = (DefaultTableModel) tableViewQuestionManagement.getModel();
-        comboboxLevelViewQuestionManagement.setModel(new DefaultComboBoxModel<>(new String[]{"1", "2", "3", "4", "5"}));
+                new String[]{"Mã Câu hỏi", "Mã Đề thi", "Mức độ", "Nội dung"}
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        if (tableViewQuestionManagement != null) {
+            tableViewQuestionManagement.setModel(columnModel);
+            tableViewQuestionManagement.getTableHeader().setReorderingAllowed(false);
+            rowModel = (DefaultTableModel) tableViewQuestionManagement.getModel();
+        }
+
+        if (textfieldQuestionIDViewQuestionManagement != null) {
+            textfieldQuestionIDViewQuestionManagement.setEnabled(false);
+        }
+
+        if (comboboxLevelViewQuestionManagement != null) {
+            comboboxLevelViewQuestionManagement.setModel(
+                    new DefaultComboBoxModel<>(new String[]{"1", "2", "3", "4", "5"})
+            );
+        }
     }
 
     private void addActionEvent() {
-        tableViewQuestionManagement.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                tableViewQuestionManagementMouseClicked();
-            }
-
-            private void tableViewQuestionManagementMouseClicked() {
-                resetInputField();
-                textfieldQuestionIDViewQuestionManagement.setEnabled(false);
-                var index = tableViewQuestionManagement.getSelectedRow();
-                if (index >= 0 && index < list.size()) {
-                    chosenQuestion = list.get(index);
-                    textfieldQuestionIDViewQuestionManagement.setText(String.valueOf(chosenQuestion.getQuestionId()));
-                    if (chosenQuestion.getExam() != null) {
-                        textfieldExamIDViewQuestionManagement.setText(String.valueOf(chosenQuestion.getExam().getExamId()));
-                    } else {
-                        textfieldExamIDViewQuestionManagement.setText(""); // Or handle appropriately
-                    }
-                    textfieldQuestionContentViewQuestionManagement.setText(chosenQuestion.getContent());
-                    comboboxLevelViewQuestionManagement.setSelectedIndex(chosenQuestion.getLevel() - 1);
+        if (tableViewQuestionManagement != null) {
+            tableViewQuestionManagement.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    handleTableRowSelection();
                 }
-            }
-        });
+            });
+        }
 
-        buttonAddViewQuestionManagement.addActionListener(e -> {
-            if (textfieldExamIDViewQuestionManagement.getText().isEmpty()
-                    || textfieldQuestionContentViewQuestionManagement.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Các trường thông tin không được bỏ trống!",
-                        "Cảnh Báo",
-                        JOptionPane.WARNING_MESSAGE
-                );
-                return;
-            }
-            try {
-                var examId = Long.parseLong(textfieldExamIDViewQuestionManagement.getText().strip());
-                var checkValidExam = examService.findById(examId);
-                if (checkValidExam == null) {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Mã đề thi không tồn tại. Hãy kiểm tra và thử lại sau!",
-                            "Lỗi",
-                            JOptionPane.ERROR_MESSAGE
-                    );
-                    return;
+        if (buttonAddViewQuestionManagement != null) {
+            buttonAddViewQuestionManagement.addActionListener(e -> handleAdd());
+        }
+
+        if (buttonUpdateViewQuestionManagement != null) {
+            buttonUpdateViewQuestionManagement.addActionListener(e -> handleUpdate());
+        }
+
+        if (buttonDeleteViewQuestionManagement != null) {
+            buttonDeleteViewQuestionManagement.addActionListener(e -> handleDelete());
+        }
+
+        if (buttonQuestionAnswerViewQuestionMangagement != null) {
+            buttonQuestionAnswerViewQuestionMangagement.addActionListener(e -> {
+                new QuestionAnswerManagement(loginUser);
+            });
+        }
+
+        if (buttonRefreshViewQuestionManagement != null) {
+            buttonRefreshViewQuestionManagement.addActionListener(e -> {
+                resetInputFields();
+                loadQuestionData();
+                if (textfieldFindViewQuestionManagement != null) {
+                    textfieldFindViewQuestionManagement.setText("");
                 }
-                var level = comboboxLevelViewQuestionManagement.getSelectedIndex() + 1;
-                var content = textfieldQuestionContentViewQuestionManagement.getText().strip();
-                var question = new Question(checkValidExam, level, content);
-                var isSuccess = questionService.save(question);
-                if (isSuccess) {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Thêm thành công.",
-                            "Thông Báo",
-                            JOptionPane.INFORMATION_MESSAGE
-                    );
-                    fillDataToTable();
+            });
+        }
+
+        if (buttonBackViewQuestionManagement != null) {
+            buttonBackViewQuestionManagement.addActionListener(e -> {
+                this.dispose();
+                if (loginUser.getUserId().equals(Login.username_admin)) {
+                    new MenuAdmin(loginUser);
                 } else {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Thêm thất bại. Xin hãy thử lại!",
-                            "Lỗi",
-                            JOptionPane.ERROR_MESSAGE
-                    );
+                    new MenuHost(loginUser);
                 }
-                resetInputField();
-            } catch (NumberFormatException nfe) {
-                JOptionPane.showMessageDialog(this, "Mã đề thi không hợp lệ.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
-            } catch (RemoteException re) {
-                JOptionPane.showMessageDialog(this, "Lỗi khi thêm câu hỏi: " + re.getMessage(), "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
+            });
+        }
+    }
+
+    private void handleTableRowSelection() {
+        resetInputFields();
+
+        if (textfieldQuestionIDViewQuestionManagement != null) {
+            textfieldQuestionIDViewQuestionManagement.setEnabled(false);
+        }
+
+        int index = tableViewQuestionManagement.getSelectedRow();
+        if (index >= 0 && index < questionList.size()) {
+            chosenQuestion = questionList.get(index);
+            textfieldQuestionIDViewQuestionManagement.setText(String.valueOf(chosenQuestion.getQuestionId()));
+
+            if (chosenQuestion.getExam() != null) {
+                textfieldExamIDViewQuestionManagement.setText(String.valueOf(chosenQuestion.getExam().getExamId()));
             }
-        });
 
-        buttonUpdateViewQuestionManagement.addActionListener(e -> {
-            if (textfieldQuestionIDViewQuestionManagement.getText().isEmpty()
-                    || textfieldExamIDViewQuestionManagement.getText().isEmpty()
-                    || textfieldQuestionContentViewQuestionManagement.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Các trường thông tin không được bỏ trống!",
-                        "Cảnh Báo",
-                        JOptionPane.WARNING_MESSAGE
-                );
-                return;
+            textfieldQuestionContentViewQuestionManagement.setText(chosenQuestion.getContent());
+
+            if (comboboxLevelViewQuestionManagement != null) {
+                comboboxLevelViewQuestionManagement.setSelectedIndex(chosenQuestion.getLevel() - 1);
             }
-            try {
-                var questionId = Long.parseLong(textfieldQuestionIDViewQuestionManagement.getText().strip());
-                var examId = Long.parseLong(textfieldExamIDViewQuestionManagement.getText().strip());
+        }
+    }
 
-                var existingQuestion = questionService.findById(questionId);
-                if (existingQuestion == null) {
-                    JOptionPane.showMessageDialog(this, "Không tìm thấy câu hỏi cần cập nhật.", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
+    private void handleAdd() {
+        String examIDStr = textfieldExamIDViewQuestionManagement.getText().strip();
+        String content = textfieldQuestionContentViewQuestionManagement.getText().strip();
+        int level = comboboxLevelViewQuestionManagement != null ?
+                comboboxLevelViewQuestionManagement.getSelectedIndex() + 1 : 1;
 
-                var checkValidExam = examService.findById(examId);
-                if (checkValidExam == null) {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Mã đề thi không tồn tại. Hãy kiểm tra và thử lại sau!",
-                            "Lỗi",
-                            JOptionPane.ERROR_MESSAGE
-                    );
-                    return;
-                }
-                existingQuestion.setExam(checkValidExam);
-                existingQuestion.setLevel(comboboxLevelViewQuestionManagement.getSelectedIndex() + 1);
-                existingQuestion.setContent(textfieldQuestionContentViewQuestionManagement.getText().strip());
-
-                var isSuccess = questionService.update(existingQuestion);
-                if (isSuccess) {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Cập nhật thành công.",
-                            "Thông Báo",
-                            JOptionPane.INFORMATION_MESSAGE
-                    );
-                    fillDataToTable();
-                } else {
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Cập nhật thất bại. Xin hãy thử lại!",
-                            "Lỗi",
-                            JOptionPane.ERROR_MESSAGE
-                    );
-                }
-                resetInputField();
-            } catch (NumberFormatException nfe) {
-                JOptionPane.showMessageDialog(this, "ID câu hỏi hoặc mã đề thi không hợp lệ.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
-            } catch (RemoteException re) {
-                JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật câu hỏi: " + re.getMessage(), "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        buttonDeleteViewQuestionManagement.addActionListener(e -> {
-            var questionIDText = textfieldQuestionIDViewQuestionManagement.getText().strip();
-            if (!questionIDText.isEmpty()) {
-                var confirmation = JOptionPane.showConfirmDialog(
+        if (examIDStr.isEmpty() || content.isEmpty()) {
+            JOptionPane.showMessageDialog(
                     this,
-                    "Bạn có chắc muốn xóa câu hỏi này không?",
-                    "Xác nhận xóa",
-                    JOptionPane.YES_NO_OPTION);
+                    "Các trường thông tin không được bỏ trống!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
 
-                if (confirmation == JOptionPane.YES_OPTION) {
-                    try {
-                        var questionId = Long.parseLong(questionIDText);
-                        var isSuccess = questionService.delete(questionId);
-                        if (isSuccess) {
-                            JOptionPane.showMessageDialog(
-                                    this,
-                                    "Xoá thành công.",
-                                    "Thông Báo",
-                                    JOptionPane.INFORMATION_MESSAGE
-                            );
-                            fillDataToTable();
-                        } else {
-                            JOptionPane.showMessageDialog(
-                                    this,
-                                    "Xoá thất bại. Xin hãy thử lại!",
-                                    "Lỗi",
-                                    JOptionPane.ERROR_MESSAGE
-                            );
-                        }
-                        resetInputField();
-                    } catch (NumberFormatException nfe) {
-                        JOptionPane.showMessageDialog(this, "ID câu hỏi không hợp lệ.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
-                    } catch (RemoteException re) {
-                        JOptionPane.showMessageDialog(this, "Lỗi khi xoá câu hỏi: " + re.getMessage(), "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
-                    }
-                }
+        try {
+            long examId = Long.parseLong(examIDStr);
+
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            Exam exam = examService.findById(examId);
+            if (exam == null) {
+                setCursor(Cursor.getDefaultCursor());
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Mã đề thi không tồn tại!",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+
+            Question newQuestion = new Question(exam, level, content);
+            boolean success = questionService.save(newQuestion);
+
+            setCursor(Cursor.getDefaultCursor());
+
+            if (success) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Thêm câu hỏi thành công!",
+                        "Thành công",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                loadQuestionData();
+                resetInputFields();
             } else {
                 JOptionPane.showMessageDialog(
                         this,
-                        "Hãy chọn câu hỏi cần xoá để tiến hành xoá!",
-                        "Cảnh Báo",
-                        JOptionPane.WARNING_MESSAGE
+                        "Thêm câu hỏi thất bại!",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
                 );
             }
-        });
-
-        buttonQuestionAnswerViewQuestionMangagement.addActionListener(e -> {
-            // It might be better to pass the chosenQuestion to QuestionAnswerManagement
-            // so that it can filter answers for that specific question.
-            // For now, it opens a generic QuestionAnswerManagement window.
-            new QuestionAnswerManagement(loginUser);
-        });
-
-        buttonRefreshViewQuestionManagement.addActionListener(e -> {
-            resetInputField();
-            textfieldFindViewQuestionManagement.setText("");
-            fillDataToTable();
-        });
-
-        buttonBackViewQuestionManagement.addActionListener(e -> {
-            if (loginUser.getUserId().equals(Login.username_admin)) { // Use constant for admin check
-                this.dispose();
-                new MenuAdmin(loginUser);
-            } else {
-                this.dispose();
-                new MenuHost(loginUser);
-            }
-        });
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Mã đề thi phải là số!",
+                    "Lỗi nhập liệu",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        } catch (RemoteException e) {
+            setCursor(Cursor.getDefaultCursor());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi kết nối server:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
+        }
     }
 
-    private void resetInputField() {
-        textfieldQuestionIDViewQuestionManagement.setText("");
-        textfieldExamIDViewQuestionManagement.setText("");
-        textfieldQuestionContentViewQuestionManagement.setText("");
-        comboboxLevelViewQuestionManagement.setSelectedIndex(0);
-        chosenQuestion = null; // Clear chosen question
-        textfieldQuestionIDViewQuestionManagement.setEnabled(false); // Disable ID field after reset
-    }
+    private void handleUpdate() {
+        if (chosenQuestion == null) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng chọn câu hỏi cần cập nhật!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
 
-    private void fillDataToTable() {
+        String examIDStr = textfieldExamIDViewQuestionManagement.getText().strip();
+        String content = textfieldQuestionContentViewQuestionManagement.getText().strip();
+        int level = comboboxLevelViewQuestionManagement != null ?
+                comboboxLevelViewQuestionManagement.getSelectedIndex() + 1 : 1;
+
+        if (examIDStr.isEmpty() || content.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Các trường thông tin không được bỏ trống!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
         try {
-            list = questionService.getAll();
+            long examId = Long.parseLong(examIDStr);
+
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            Exam exam = examService.findById(examId);
+            if (exam == null) {
+                setCursor(Cursor.getDefaultCursor());
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Mã đề thi không tồn tại!",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+
+            chosenQuestion.setExam(exam);
+            chosenQuestion.setLevel(level);
+            chosenQuestion.setContent(content);
+
+            boolean success = questionService.update(chosenQuestion);
+
+            setCursor(Cursor.getDefaultCursor());
+
+            if (success) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Cập nhật câu hỏi thành công!",
+                        "Thành công",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                loadQuestionData();
+                resetInputFields();
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Cập nhật câu hỏi thất bại!",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Mã đề thi phải là số!",
+                    "Lỗi nhập liệu",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        } catch (RemoteException e) {
+            setCursor(Cursor.getDefaultCursor());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi kết nối server:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
+        }
+    }
+
+    private void handleDelete() {
+        if (chosenQuestion == null) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng chọn câu hỏi cần xóa!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc muốn xóa câu hỏi này?\nTất cả đáp án liên quan cũng sẽ bị xóa!",
+                "Xác nhận xóa",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+                boolean success = questionService.delete(chosenQuestion.getQuestionId());
+                setCursor(Cursor.getDefaultCursor());
+
+                if (success) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Xóa câu hỏi thành công!",
+                            "Thành công",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                    loadQuestionData();
+                    resetInputFields();
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Xóa câu hỏi thất bại!",
+                            "Lỗi",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            } catch (RemoteException e) {
+                setCursor(Cursor.getDefaultCursor());
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Lỗi kết nối server:\n" + e.getMessage(),
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void loadQuestionData() {
+        try {
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            questionList = questionService.getAll();
             rowModel.setRowCount(0);
-            for (var question : list) {
+
+            for (Question question : questionList) {
+                String examId = question.getExam() != null ?
+                        String.valueOf(question.getExam().getExamId()) : "N/A";
+
                 rowModel.addRow(new Object[]{
                         question.getQuestionId(),
-                        (question.getExam() != null ? question.getExam().getExamId() : "N/A"), // Use getter
+                        examId,
                         question.getLevel(),
                         question.getContent()
                 });
             }
+            setCursor(Cursor.getDefaultCursor());
         } catch (RemoteException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu câu hỏi: " + e.getMessage(), "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
+            setCursor(Cursor.getDefaultCursor());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi tải dữ liệu từ server:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
     }
 
     private void makeTableSearchable() {
-        rowSorter = new TableRowSorter<>(rowModel);
-        var i = 0;
-        while (i < columnModel.getColumnCount()) {
-            rowSorter.setSortable(i, false);
-            ++i;
+        if (textfieldFindViewQuestionManagement != null && tableViewQuestionManagement != null) {
+            rowSorter = new TableRowSorter<>(rowModel);
+
+            for (int i = 0; i < columnModel.getColumnCount(); i++) {
+                rowSorter.setSortable(i, false);
+            }
+
+            tableViewQuestionManagement.setRowSorter(rowSorter);
+
+            textfieldFindViewQuestionManagement.getDocument().addDocumentListener(new DocumentListener() {
+                @Override
+                public void insertUpdate(DocumentEvent e) {
+                    filter();
+                }
+
+                @Override
+                public void removeUpdate(DocumentEvent e) {
+                    filter();
+                }
+
+                @Override
+                public void changedUpdate(DocumentEvent e) {
+                    filter();
+                }
+
+                private void filter() {
+                    String text = textfieldFindViewQuestionManagement.getText().strip();
+                    if (text.isEmpty()) {
+                        rowSorter.setRowFilter(null);
+                    } else {
+                        rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                    }
+                }
+            });
         }
-        tableViewQuestionManagement.setRowSorter(rowSorter);
-        textfieldFindViewQuestionManagement
-                .getDocument()
-                .addDocumentListener(new DocumentListener() {
-                    @Override
-                    public void insertUpdate(DocumentEvent e) {
-                        var text = textfieldFindViewQuestionManagement.getText().strip();
-                        if (text.length() != 0) {
-                            rowSorter.setRowFilter(RowFilter.regexFilter(text));
-                        } else {
-                            rowSorter.setRowFilter(null);
-                        }
-                    }
-
-                    @Override
-                    public void removeUpdate(DocumentEvent e) {
-                        var text = textfieldFindViewQuestionManagement.getText().strip();
-                        if (text.length() != 0) {
-                            rowSorter.setRowFilter(RowFilter.regexFilter(text));
-                        } else {
-                            rowSorter.setRowFilter(null);
-                        }
-                    }
-
-                    @Override
-                    public void changedUpdate(DocumentEvent e) {
-                    }
-                });
     }
 
-    private void createUIComponents() {
+    private void resetInputFields() {
+        if (textfieldQuestionIDViewQuestionManagement != null) {
+            textfieldQuestionIDViewQuestionManagement.setText("");
+        }
+        if (textfieldExamIDViewQuestionManagement != null) {
+            textfieldExamIDViewQuestionManagement.setText("");
+        }
+        if (textfieldQuestionContentViewQuestionManagement != null) {
+            textfieldQuestionContentViewQuestionManagement.setText("");
+        }
+        if (comboboxLevelViewQuestionManagement != null) {
+            comboboxLevelViewQuestionManagement.setSelectedIndex(0);
+        }
+
+        chosenQuestion = null;
+
+        if (tableViewQuestionManagement != null) {
+            tableViewQuestionManagement.clearSelection();
+        }
     }
 }
