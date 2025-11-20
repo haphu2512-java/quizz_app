@@ -1,7 +1,7 @@
 package iuh.fit.se.gui;
 
-import DAO.UserDAO;
-import Model.User;
+
+import entity.User;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;

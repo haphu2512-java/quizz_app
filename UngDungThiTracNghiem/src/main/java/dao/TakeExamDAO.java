@@ -49,8 +49,10 @@ public class TakeExamDAO {
     @SuppressWarnings("unchecked")
     public List<QuestionAnswer> selectQuestionAnswerOfQuestion(long questionId) {
         // Using a native query for MySQL's RAND() function to maintain random order.
-        List<QuestionAnswer> answers = em.createNativeQuery("SELECT * FROM question_answers WHERE question_id = :questionId", QuestionAnswer.class)
-                .setParameter("questionId", questionId)
+        List<QuestionAnswer> answers = em.createNativeQuery(
+                        "SELECT * FROM question_answers WHERE question_id = ?",
+                        QuestionAnswer.class)
+                .setParameter(1, questionId)
                 .getResultList();
         // Shuffle in memory to be database-agnostic, though the original used RAND().
         // For this refactoring, we will keep the spirit of randomization.
