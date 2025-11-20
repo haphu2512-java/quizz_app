@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence
+                                 https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
+             version="3.0">
+
+    <persistence-unit name="AppTN" transaction-type="RESOURCE_LOCAL">
+
+        <!-- ====== KHAI BÁO ENTITY ====== -->
+        <class>entity.User</class>
+        <class>entity.Question</class>
+        <class>entity.Exam</class>
+        <class>entity.Enrollment</class>
+        <class>entity.EnrollmentAnswer</class>
+        <class>entity.Room</class>
+        <class>entity.QuestionAnswer</class>
+
+        <!-- ====== CẤU HÌNH DATABASE / JDBC ====== -->
+        <properties>
+
+            <!-- MariaDB Connection -->
+            <property name="jakarta.persistence.jdbc.driver" value="org.mariadb.jdbc.Driver"/>
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:mariadb://localhost:3307/quiz_app?useUnicode=true&amp;characterEncoding=UTF-8"/>
+            <property name="jakarta.persistence.jdbc.user" value="root"/>
+            <property name="jakarta.persistence.jdbc.password" value="sa"/>
+
+            <!-- Hibernate Provider -->
+            <property name="jakarta.persistence.provider" value="org.hibernate.jpa.HibernatePersistenceProvider"/>
+
+            <!-- Hibernate Dialect cho MariaDB -->
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MariaDBDialect"/>
+
+            <!-- Tự động tạo bảng: update / create / create-drop -->
+            <property name="hibernate.hbm2ddl.auto" value="update"/>
+
+            <!-- Hiển thị SQL -->
+            <property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+
+            <!-- UTF-8 -->
+            <property name="hibernate.connection.useUnicode" value="true"/>
+            <property name="hibernate.connection.characterEncoding" value="UTF-8"/>
+
+            <!-- Connection Pool (Hibernate built-in) -->
+            <property name="hibernate.connection.pool_size" value="5"/>
+
+        </properties>
+    </persistence-unit>
+</persistence>
