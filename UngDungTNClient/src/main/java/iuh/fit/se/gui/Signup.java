@@ -51,83 +51,80 @@ public class Signup extends JFrame {
     }
 
     private void initComponents() {
-        if (panelViewSignup == null) {
-            panelViewSignup = new JPanel(new GridBagLayout());
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.insets = new Insets(8, 8, 8, 8);
-            gbc.fill = GridBagConstraints.HORIZONTAL;
+        panelViewSignup = new JPanel(new GridBagLayout());
+        panelViewSignup.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-            // UserID Label
-            labelUserIDViewSignup = new JLabel("Tên tài khoản (UserID):");
-            labelUserIDViewSignup.setFont(new Font("Arial", Font.BOLD, 14));
-            gbc.gridx = 0;
-            gbc.gridy = 0;
-            gbc.anchor = GridBagConstraints.WEST;
-            panelViewSignup.add(labelUserIDViewSignup, gbc);
+        // UserID Label
+        labelUserIDViewSignup = new JLabel("Tên tài khoản (UserID):");
+        labelUserIDViewSignup.setFont(new Font("Arial", Font.BOLD, 14));
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        panelViewSignup.add(labelUserIDViewSignup, gbc);
 
-            // UserID Field
-            textfieldUserIDViewSignup = new JTextField(20);
-            textfieldUserIDViewSignup.setFont(new Font("Arial", Font.PLAIN, 16));
-            gbc.gridx = 0;
-            gbc.gridy = 1;
-            panelViewSignup.add(textfieldUserIDViewSignup, gbc);
+        // UserID Field
+        textfieldUserIDViewSignup = new JTextField(20);
+        textfieldUserIDViewSignup.setFont(new Font("Arial", Font.PLAIN, 16));
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panelViewSignup.add(textfieldUserIDViewSignup, gbc);
 
-            // Fullname Label
-            labelFullnameViewSignup = new JLabel("Họ và tên:");
-            labelFullnameViewSignup.setFont(new Font("Arial", Font.BOLD, 14));
-            gbc.gridx = 0;
-            gbc.gridy = 2;
-            panelViewSignup.add(labelFullnameViewSignup, gbc);
+        // Fullname Label
+        labelFullnameViewSignup = new JLabel("Họ và tên:");
+        labelFullnameViewSignup.setFont(new Font("Arial", Font.BOLD, 14));
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        panelViewSignup.add(labelFullnameViewSignup, gbc);
 
-            // Fullname Field
-            textfieldFullnameViewSignup = new JTextField(20);
-            textfieldFullnameViewSignup.setFont(new Font("Arial", Font.PLAIN, 16));
-            gbc.gridx = 0;
-            gbc.gridy = 3;
-            panelViewSignup.add(textfieldFullnameViewSignup, gbc);
+        // Fullname Field
+        textfieldFullnameViewSignup = new JTextField(20);
+        textfieldFullnameViewSignup.setFont(new Font("Arial", Font.PLAIN, 16));
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        panelViewSignup.add(textfieldFullnameViewSignup, gbc);
 
-            // Password Label
-            labelPasswordViewSignup = new JLabel("Mật khẩu:");
-            labelPasswordViewSignup.setFont(new Font("Arial", Font.BOLD, 14));
-            gbc.gridx = 0;
-            gbc.gridy = 4;
-            panelViewSignup.add(labelPasswordViewSignup, gbc);
+        // Password Label
+        labelPasswordViewSignup = new JLabel("Mật khẩu:");
+        labelPasswordViewSignup.setFont(new Font("Arial", Font.BOLD, 14));
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        panelViewSignup.add(labelPasswordViewSignup, gbc);
 
-            // Password Field
-            passwordfieldPasswordViewSignup = new JPasswordField(20);
-            passwordfieldPasswordViewSignup.setFont(new Font("Arial", Font.PLAIN, 16));
-            gbc.gridx = 0;
-            gbc.gridy = 5;
-            panelViewSignup.add(passwordfieldPasswordViewSignup, gbc);
+        // Password Field
+        passwordfieldPasswordViewSignup = new JPasswordField(20);
+        passwordfieldPasswordViewSignup.setFont(new Font("Arial", Font.PLAIN, 16));
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        panelViewSignup.add(passwordfieldPasswordViewSignup, gbc);
 
-            // Password Again Label
-            labelPasswordAgainViewSignup = new JLabel("Nhập lại mật khẩu:");
-            labelPasswordAgainViewSignup.setFont(new Font("Arial", Font.BOLD, 14));
-            gbc.gridx = 0;
-            gbc.gridy = 6;
-            panelViewSignup.add(labelPasswordAgainViewSignup, gbc);
+        // Password Again Label
+        labelPasswordAgainViewSignup = new JLabel("Nhập lại mật khẩu:");
+        labelPasswordAgainViewSignup.setFont(new Font("Arial", Font.BOLD, 14));
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        panelViewSignup.add(labelPasswordAgainViewSignup, gbc);
 
-            // Password Again Field
-            passwordfieldPasswordAgainViewSignup = new JPasswordField(20);
-            passwordfieldPasswordAgainViewSignup.setFont(new Font("Arial", Font.PLAIN, 16));
-            gbc.gridx = 0;
-            gbc.gridy = 7;
-            panelViewSignup.add(passwordfieldPasswordAgainViewSignup, gbc);
+        // Password Again Field
+        passwordfieldPasswordAgainViewSignup = new JPasswordField(20);
+        passwordfieldPasswordAgainViewSignup.setFont(new Font("Arial", Font.PLAIN, 16));
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        panelViewSignup.add(passwordfieldPasswordAgainViewSignup, gbc);
 
-            // Button Panel
-            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-            buttonSignupViewSignup = new JButton("Đăng ký");
-            buttonBackViewSignup = new JButton("Quay lại");
-            buttonPanel.add(buttonSignupViewSignup);
-            buttonPanel.add(buttonBackViewSignup);
+        // Button Panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        buttonSignupViewSignup = new JButton("Đăng ký");
+        buttonBackViewSignup = new JButton("Quay lại");
+        buttonPanel.add(buttonSignupViewSignup);
+        buttonPanel.add(buttonBackViewSignup);
 
-            gbc.gridx = 0;
-            gbc.gridy = 8;
-            gbc.insets = new Insets(15, 8, 8, 8);
-            panelViewSignup.add(buttonPanel, gbc);
-
-            panelViewSignup.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        }
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        gbc.insets = new Insets(15, 8, 8, 8);
+        panelViewSignup.add(buttonPanel, gbc);
     }
 
     private void addActionEvent() {

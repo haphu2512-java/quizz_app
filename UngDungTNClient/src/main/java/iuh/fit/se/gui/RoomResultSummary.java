@@ -1,9 +1,9 @@
 package iuh.fit.se.gui;
 
-import dao.UserDAO;
 import entity.Enrollment;
 import entity.User;
-import service.impl.EnrollmentServiceImpl;
+import iuh.fit.se.util.ServiceFactory;
+import service.EnrollmentService;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -15,120 +15,167 @@ import java.awt.*;
 import java.rmi.RemoteException;
 import java.util.List;
 
-
 public class RoomResultSummary extends JFrame {
     private final User loginUser;
+    private EnrollmentService enrollmentService;
+
     private JPanel panelViewRoomResultSummary;
     private JTextField textfieldFindViewRoomResultSummary;
     private JTable tableViewRoomResultSummary;
     private JButton buttonBackViewRoomResultSummary;
-    private JLabel labelFindViewRoomResultSummary;
 
     private DefaultTableModel columnModel;
     private DefaultTableModel rowModel;
     private TableRowSorter<TableModel> rowSorter;
 
-    private EnrollmentServiceImpl enrollmentService;
-
     public RoomResultSummary(User loginUser) {
         this.loginUser = loginUser;
+
         try {
-            this.enrollmentService = new EnrollmentServiceImpl();
-        } catch (RemoteException e) {
-            JOptionPane.showMessageDialog(this, "Error initializing enrollment service: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            System.exit(1);
+            this.enrollmentService = ServiceFactory.getEnrollmentService();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi kết nối service: " + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            this.dispose();
+            return;
         }
 
-        this.setTitle("Tổng kết điểm");
+        initComponents();
+        addActionEvent();
+
+        this.setTitle("Tổng Kết Điểm");
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setContentPane(panelViewRoomResultSummary);
         this.pack();
         this.setLocationRelativeTo(null);
         this.setVisible(true);
-        initComponents();
-        addActionEvent();
-        fillDataToTable();
+
+        loadResultData();
         makeTableSearchable();
     }
 
-    public static void main(String[] args) {
-        // var admin = new User("admin", "admin", "admin", true); // Old User constructor
-        User admin = new User("admin", "Admin User", UserDAO.encryptPassword("admin"), true);
-        EventQueue.invokeLater(() -> new RoomResultSummary(admin));
-    }
-
-    private void createUIComponents() {
-    }
-
     private void initComponents() {
-        tableViewRoomResultSummary.setDefaultEditor(Object.class, null);
-        tableViewRoomResultSummary.getTableHeader().setReorderingAllowed(false);
+        panelViewRoomResultSummary = new JPanel(new BorderLayout(10, 10));
+        panelViewRoomResultSummary.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panelViewRoomResultSummary.setPreferredSize(new Dimension(800, 600));
+
+        // --- TABLE ---
         columnModel = new DefaultTableModel(
                 new Object[][]{},
-                new String[]{"UserID", "Mã phòng thi", "Điểm thi"}
-        );
-        tableViewRoomResultSummary.setModel(columnModel);
+                new String[]{"UserID", "Họ tên", "Mã phòng", "Tiêu đề phòng", "Điểm"}
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        tableViewRoomResultSummary = new JTable(columnModel);
+        tableViewRoomResultSummary.getTableHeader().setReorderingAllowed(false);
         rowModel = (DefaultTableModel) tableViewRoomResultSummary.getModel();
+        JScrollPane tableScrollPane = new JScrollPane(tableViewRoomResultSummary);
+        tableScrollPane.setBorder(BorderFactory.createTitledBorder("Bảng tổng kết điểm"));
+        panelViewRoomResultSummary.add(tableScrollPane, BorderLayout.CENTER);
+
+
+        // --- BUTTONS & SEARCH (SOUTH) ---
+        JPanel southPanel = new JPanel(new BorderLayout(10, 10));
+        
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.add(new JLabel("Tìm kiếm:"));
+        textfieldFindViewRoomResultSummary = new JTextField(20);
+        searchPanel.add(textfieldFindViewRoomResultSummary);
+        southPanel.add(searchPanel, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonBackViewRoomResultSummary = new JButton("Quay lại");
+        buttonPanel.add(buttonBackViewRoomResultSummary);
+        southPanel.add(buttonPanel, BorderLayout.EAST);
+        
+        panelViewRoomResultSummary.add(southPanel, BorderLayout.SOUTH);
     }
 
     private void addActionEvent() {
-        buttonBackViewRoomResultSummary.addActionListener(event -> {
-            this.dispose();
-            new RoomManagement(loginUser);
-        });
+        if (buttonBackViewRoomResultSummary != null) {
+            buttonBackViewRoomResultSummary.addActionListener(event -> {
+                this.dispose();
+                new RoomManagement(loginUser);
+            });
+        }
     }
 
-    private void fillDataToTable() {
+    private void loadResultData() {
+        if (rowModel == null) return;
         try {
-            List<Enrollment> list = enrollmentService.getAll(); // Use service to get all enrollments
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            List<Enrollment> enrollments = enrollmentService.getAll();
             rowModel.setRowCount(0);
-            for (var enrollment : list) {
+
+            for (Enrollment enrollment : enrollments) {
+                String userId = enrollment.getUser() != null ?
+                        enrollment.getUser().getUserId() : "N/A";
+                String userName = enrollment.getUser() != null ?
+                        enrollment.getUser().getFullName() : "N/A";
+                String roomId = enrollment.getRoom() != null ?
+                        String.valueOf(enrollment.getRoom().getRoomId()) : "N/A";
+                String roomTitle = enrollment.getRoom() != null ?
+                        enrollment.getRoom().getTitle() : "N/A";
+
                 rowModel.addRow(new Object[]{
-                        (enrollment.getUser() != null ? enrollment.getUser().getUserId() : "N/A"), // Use getter
-                        (enrollment.getRoom() != null ? enrollment.getRoom().getRoomId() : "N/A"), // Use getter
-                        enrollment.getScore()
+                        userId,
+                        userName,
+                        roomId,
+                        roomTitle,
+                        String.format("%.2f", enrollment.getScore())
                 });
             }
+            setCursor(Cursor.getDefaultCursor());
         } catch (RemoteException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu tổng kết điểm: " + e.getMessage(), "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
+            setCursor(Cursor.getDefaultCursor());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi tải dữ liệu tổng kết:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
     }
 
     private void makeTableSearchable() {
-        rowSorter = new TableRowSorter<>(rowModel);
-        var i = 0;
-        while (i < columnModel.getColumnCount()) {
-            rowSorter.setSortable(i, false);
-            ++i;
+        if (textfieldFindViewRoomResultSummary != null && tableViewRoomResultSummary != null) {
+            rowSorter = new TableRowSorter<>(rowModel);
+            tableViewRoomResultSummary.setRowSorter(rowSorter);
+
+            textfieldFindViewRoomResultSummary.getDocument().addDocumentListener(new DocumentListener() {
+                @Override
+                public void insertUpdate(DocumentEvent e) {
+                    filter();
+                }
+
+                @Override
+                public void removeUpdate(DocumentEvent e) {
+                    filter();
+                }
+
+                @Override
+                public void changedUpdate(DocumentEvent e) {
+                    filter();
+                }
+
+                private void filter() {
+                    String text = textfieldFindViewRoomResultSummary.getText().strip();
+                    if (text.isEmpty()) {
+                        rowSorter.setRowFilter(null);
+                    } else {
+                        rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                    }
+                }
+            });
         }
-        tableViewRoomResultSummary.setRowSorter(rowSorter);
-        textfieldFindViewRoomResultSummary
-                .getDocument()
-                .addDocumentListener(new DocumentListener() {
-                    @Override
-                    public void insertUpdate(DocumentEvent e) {
-                        var text = textfieldFindViewRoomResultSummary.getText().strip();
-                        if (text.length() != 0) {
-                            rowSorter.setRowFilter(RowFilter.regexFilter(text));
-                        } else {
-                            rowSorter.setRowFilter(null);
-                        }
-                    }
-
-                    @Override
-                    public void removeUpdate(DocumentEvent e) {
-                        var text = textfieldFindViewRoomResultSummary.getText().strip();
-                        if (text.length() != 0) {
-                            rowSorter.setRowFilter(RowFilter.regexFilter(text));
-                        } else {
-                            rowSorter.setRowFilter(null);
-                        }
-                    }
-
-                    @Override
-                    public void changedUpdate(DocumentEvent e) {
-                    }
-                });
     }
 }

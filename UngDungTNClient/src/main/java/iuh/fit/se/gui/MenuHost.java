@@ -1,6 +1,5 @@
 package iuh.fit.se.gui;
 
-import dao.UserDAO;
 import entity.User;
 
 import javax.swing.*;
@@ -16,7 +15,10 @@ public class MenuHost extends JFrame {
 
     public MenuHost(User user) {
         this.loginUser = user;
+        
+        initComponents();
         addActionEvent();
+        
         this.setTitle("Menu Host");
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -26,10 +28,19 @@ public class MenuHost extends JFrame {
         this.setVisible(true);
     }
 
-    public static void main(String[] args) {
-        // For testing purposes, create a dummy User entity
-        User host = new User("host", "Host User", UserDAO.encryptPassword("host_pass"), true);
-        EventQueue.invokeLater(() -> new MenuHost(host));
+    private void initComponents() {
+        panelViewMenuHost = new JPanel(new GridLayout(2, 2, 15, 15));
+        panelViewMenuHost.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        buttonExamManagementViewMenuHost = new JButton("Quản lý đề thi");
+        buttonQuestionManagementViewMenuHost = new JButton("Quản lý câu hỏi");
+        buttonRoomManagementViewMenuHost = new JButton("Quản lý phòng thi");
+        buttonLogoutViewMenuHost = new JButton("Đăng xuất");
+
+        panelViewMenuHost.add(buttonExamManagementViewMenuHost);
+        panelViewMenuHost.add(buttonQuestionManagementViewMenuHost);
+        panelViewMenuHost.add(buttonRoomManagementViewMenuHost);
+        panelViewMenuHost.add(buttonLogoutViewMenuHost);
     }
 
     private void addActionEvent() {
@@ -49,8 +60,5 @@ public class MenuHost extends JFrame {
             this.dispose();
             new Login();
         });
-    }
-
-    private void createUIComponents() {
     }
 }

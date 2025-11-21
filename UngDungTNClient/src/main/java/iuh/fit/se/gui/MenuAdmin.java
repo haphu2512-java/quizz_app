@@ -1,6 +1,5 @@
 package iuh.fit.se.gui;
 
-import dao.UserDAO;
 import entity.User;
 
 import javax.swing.*;
@@ -17,7 +16,10 @@ public class MenuAdmin extends JFrame {
 
     public MenuAdmin(User user) {
         this.loginUser = user;
+        
+        initComponents();
         addActionEvent();
+
         this.setTitle("Menu Admin");
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -27,10 +29,27 @@ public class MenuAdmin extends JFrame {
         this.setVisible(true);
     }
 
-    public static void main(String[] args) {
-        // For testing purposes, create a dummy User entity
-        User admin = new User("admin", "Admin User", UserDAO.encryptPassword("admin"), true);
-        EventQueue.invokeLater(() -> new MenuAdmin(admin));
+    private void initComponents() {
+        panelViewMenuAdmin = new JPanel(new GridLayout(3, 2, 10, 10));
+        panelViewMenuAdmin.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        buttonUserManagementViewMenuAdmin = new JButton("Quản lý người dùng");
+        buttonRoomManagementViewMenuAdmin = new JButton("Quản lý phòng thi");
+        buttonQuestionManagementViewMenuAdmin = new JButton("Quản lý câu hỏi");
+        buttonExamManagementViewMenuAdmin = new JButton("Quản lý đề thi");
+        buttonLogoutViewMenuAdmin = new JButton("Đăng xuất");
+
+        panelViewMenuAdmin.add(buttonUserManagementViewMenuAdmin);
+        panelViewMenuAdmin.add(buttonExamManagementViewMenuAdmin);
+        panelViewMenuAdmin.add(buttonRoomManagementViewMenuAdmin);
+        panelViewMenuAdmin.add(buttonQuestionManagementViewMenuAdmin);
+        
+        // Add a placeholder and the logout button to the last row for better alignment
+        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        logoutPanel.add(buttonLogoutViewMenuAdmin);
+        
+        panelViewMenuAdmin.add(new JLabel()); // Placeholder
+        panelViewMenuAdmin.add(logoutPanel);
     }
 
     private void addActionEvent() {
@@ -54,8 +73,5 @@ public class MenuAdmin extends JFrame {
             this.dispose();
             new Login();
         });
-    }
-
-    private void createUIComponents() {
     }
 }

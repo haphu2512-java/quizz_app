@@ -1,9 +1,12 @@
 package iuh.fit.se.gui;
 
-import dao.UserDAO;
 import entity.Enrollment;
+import entity.Exam;
+import entity.Room;
 import entity.User;
-import service.impl.EnrollmentServiceImpl;
+import iuh.fit.se.util.ServiceFactory;
+import service.EnrollmentService;
+import service.TakeExamService;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -15,56 +18,93 @@ import java.awt.*;
 import java.rmi.RemoteException;
 import java.util.List;
 
+// ResultAttendee.java - Xem điểm của học viên
 public class ResultAttendee extends JFrame {
     private final User loginUser;
+    private EnrollmentService enrollmentService;
+    private TakeExamService takeExamService;
+
+    private JPanel panelViewResultAttendee;
     private JTextField textfieldFindViewResultAttendee;
     private JTable tableViewResultAttendee;
     private JButton buttonBackViewResutlAttendee;
-    private JLabel labelFindViewResultAttendee;
-    private JPanel panelViewResultAttendee;
+
     private DefaultTableModel columnModel;
     private DefaultTableModel rowModel;
     private TableRowSorter<TableModel> rowSorter;
 
-    private EnrollmentServiceImpl enrollmentService;
-
     public ResultAttendee(User loginUser) {
         this.loginUser = loginUser;
+
         try {
-            this.enrollmentService = new EnrollmentServiceImpl();
-        } catch (RemoteException e) {
-            JOptionPane.showMessageDialog(this, "Error initializing enrollment service: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            System.exit(1);
+            this.enrollmentService = ServiceFactory.getEnrollmentService();
+            this.takeExamService = ServiceFactory.getTakeExamService();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi kết nối service: " + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            this.dispose();
+            new MenuAttendee(loginUser);
+            return;
         }
 
-        this.setTitle("Xem điểm thi");
+        initComponents();
+        addActionEvent();
+
+        this.setTitle("Xem Điểm Thi");
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setContentPane(panelViewResultAttendee);
         this.pack();
         this.setLocationRelativeTo(null);
         this.setVisible(true);
-        initComponents();
-        addActionEvent();
-        fillDataToTable();
+
+        loadResultData();
         makeTableSearchable();
     }
 
-    public static void main(String[] args) {
-        // For testing purposes, create a dummy User entity
-        User attendee = new User("attendee", "Attendee User", UserDAO.encryptPassword("attendee_pass"), false);
-        EventQueue.invokeLater(() -> new ResultAttendee(attendee));
-    }
-
     private void initComponents() {
-        tableViewResultAttendee.setDefaultEditor(Object.class, null);
-        tableViewResultAttendee.getTableHeader().setReorderingAllowed(false);
+        panelViewResultAttendee = new JPanel(new BorderLayout(10, 10));
+        panelViewResultAttendee.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panelViewResultAttendee.setPreferredSize(new Dimension(800, 600));
+
+
+        // --- TABLE ---
         columnModel = new DefaultTableModel(
                 new Object[][]{},
-                new String[]{"Mã phòng thi", "Điểm thi"}
-        );
-        tableViewResultAttendee.setModel(columnModel);
+                new String[]{"Mã phòng thi", "Tiêu đề", "Điểm thi", "Điểm tối đa"}
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        tableViewResultAttendee = new JTable(columnModel);
+        tableViewResultAttendee.getTableHeader().setReorderingAllowed(false);
         rowModel = (DefaultTableModel) tableViewResultAttendee.getModel();
+        JScrollPane tableScrollPane = new JScrollPane(tableViewResultAttendee);
+        tableScrollPane.setBorder(BorderFactory.createTitledBorder("Kết quả thi"));
+        panelViewResultAttendee.add(tableScrollPane, BorderLayout.CENTER);
+
+
+        // --- BUTTONS & SEARCH (SOUTH) ---
+        JPanel southPanel = new JPanel(new BorderLayout(10,10));
+        
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.add(new JLabel("Tìm kiếm:"));
+        textfieldFindViewResultAttendee = new JTextField(20);
+        searchPanel.add(textfieldFindViewResultAttendee);
+        southPanel.add(searchPanel, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonBackViewResutlAttendee = new JButton("Quay lại");
+        buttonPanel.add(buttonBackViewResutlAttendee);
+        southPanel.add(buttonPanel, BorderLayout.EAST);
+        
+        panelViewResultAttendee.add(southPanel, BorderLayout.SOUTH);
     }
 
     private void addActionEvent() {
@@ -74,60 +114,80 @@ public class ResultAttendee extends JFrame {
         });
     }
 
-    private void fillDataToTable() {
+    private void loadResultData() {
+        if(rowModel == null) return;
         try {
-            // Assuming selectByUserID is available and returns List<Enrollment>
-            List<Enrollment> list = enrollmentService.selectByUserID(loginUser.getUserId());
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            List<Enrollment> enrollments = enrollmentService.selectByUserID(loginUser.getUserId());
             rowModel.setRowCount(0);
-            for (var enrollment : list) {
+
+            for (Enrollment enrollment : enrollments) {
+                String roomId = "N/A";
+                String roomTitle = "N/A";
+                double maxScore = 0;
+
+                if (enrollment.getRoom() != null) {
+                    Room room = enrollment.getRoom();
+                    roomId = String.valueOf(room.getRoomId());
+                    roomTitle = room.getTitle();
+
+                    // Fetch the full exam object to avoid LazyInitializationException
+                    Exam exam = takeExamService.selectExamOfRoom(room.getRoomId());
+                    if (exam != null) {
+                        maxScore = exam.getTotalScore();
+                    }
+                }
+
                 rowModel.addRow(new Object[]{
-                        // enrollment.getRoom_id() -> enrollment.getRoom().getRoomId()
-                        (enrollment.getRoom() != null ? enrollment.getRoom().getRoomId() : "N/A"),
-                        enrollment.getScore()
+                        roomId,
+                        roomTitle,
+                        String.format("%.2f", enrollment.getScore()),
+                        String.format("%.2f", maxScore)
                 });
             }
+            setCursor(Cursor.getDefaultCursor());
         } catch (RemoteException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu điểm thi: " + e.getMessage(), "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
+            setCursor(Cursor.getDefaultCursor());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi tải dữ liệu điểm thi:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
     }
 
     private void makeTableSearchable() {
-        rowSorter = new TableRowSorter<>(rowModel);
-        var i = 0;
-        while (i < columnModel.getColumnCount()) {
-            rowSorter.setSortable(i, false);
-            ++i;
+        if (textfieldFindViewResultAttendee != null && tableViewResultAttendee != null) {
+            rowSorter = new TableRowSorter<>(rowModel);
+            tableViewResultAttendee.setRowSorter(rowSorter);
+
+            textfieldFindViewResultAttendee.getDocument().addDocumentListener(new DocumentListener() {
+                @Override
+                public void insertUpdate(DocumentEvent e) {
+                    filter();
+                }
+
+                @Override
+                public void removeUpdate(DocumentEvent e) {
+                    filter();
+                }
+
+                @Override
+                public void changedUpdate(DocumentEvent e) {
+                    filter();
+                }
+
+                private void filter() {
+                    String text = textfieldFindViewResultAttendee.getText().strip();
+                    if (text.isEmpty()) {
+                        rowSorter.setRowFilter(null);
+                    } else {
+                        rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                    }
+                }
+            });
         }
-        tableViewResultAttendee.setRowSorter(rowSorter);
-        textfieldFindViewResultAttendee
-                .getDocument()
-                .addDocumentListener(new DocumentListener() {
-                    @Override
-                    public void insertUpdate(DocumentEvent e) {
-                        var text = textfieldFindViewResultAttendee.getText().strip();
-                        if (text.length() != 0) {
-                            rowSorter.setRowFilter(RowFilter.regexFilter(text));
-                        } else {
-                            rowSorter.setRowFilter(null);
-                        }
-                    }
-
-                    @Override
-                    public void removeUpdate(DocumentEvent e) {
-                        var text = textfieldFindViewResultAttendee.getText().strip();
-                        if (text.length() != 0) {
-                            rowSorter.setRowFilter(RowFilter.regexFilter(text));
-                        } else {
-                            rowSorter.setRowFilter(null);
-                        }
-                    }
-
-                    @Override
-                    public void changedUpdate(DocumentEvent e) {
-                    }
-                });
-    }
-
-    private void createUIComponents() {
     }
 }

@@ -1,6 +1,5 @@
 package iuh.fit.se.gui;
 
-import dao.UserDAO;
 import entity.User;
 
 import javax.swing.*;
@@ -15,7 +14,9 @@ public class MenuAttendee extends JFrame {
 
     public MenuAttendee(User user) {
         this.loginUser = user;
+        initComponents();
         addActionEvent();
+        
         this.setTitle("Menu Attendee");
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -25,10 +26,19 @@ public class MenuAttendee extends JFrame {
         this.setVisible(true);
     }
 
-    public static void main(String[] args) {
-        // For testing purposes, create a dummy User entity
-        User attendee = new User("attendee", "Attendee User", UserDAO.encryptPassword("attendee_pass"), false);
-        EventQueue.invokeLater(() -> new MenuAttendee(attendee));
+    private void initComponents() {
+        panelViewMenuAttendee = new JPanel(new GridLayout(3, 1, 10, 10));
+        panelViewMenuAttendee.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+        panelViewMenuAttendee.setMinimumSize(new Dimension(300, 300));
+        panelViewMenuAttendee.setPreferredSize(new Dimension(350, 300));
+
+        buttonGoToRoomAttendeeViewMenuAttendee = new JButton("Vào phòng thi");
+        buttonResultAttendeeViewMenuAttendee = new JButton("Xem điểm thi");
+        buttonLogoutViewMenuAttendee = new JButton("Đăng xuất");
+        
+        panelViewMenuAttendee.add(buttonGoToRoomAttendeeViewMenuAttendee);
+        panelViewMenuAttendee.add(buttonResultAttendeeViewMenuAttendee);
+        panelViewMenuAttendee.add(buttonLogoutViewMenuAttendee);
     }
 
     private void addActionEvent() {
@@ -44,8 +54,5 @@ public class MenuAttendee extends JFrame {
             this.dispose();
             new Login();
         });
-    }
-
-    private void createUIComponents() {
     }
 }

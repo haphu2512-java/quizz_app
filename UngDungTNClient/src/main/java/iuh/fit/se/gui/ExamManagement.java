@@ -16,10 +16,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.rmi.RemoteException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
- * Form quản lý đề thi - Sử dụng RMI Service và SwingWorker để tránh block UI
+ * Form quản lý đề thi - Sử dụng RMI Service
  */
 public class ExamManagement extends JFrame {
     private final User loginUser;
@@ -79,7 +78,48 @@ public class ExamManagement extends JFrame {
     }
 
     private void initComponents() {
-        // Initialize table model
+        panelViewExamManagement = new JPanel(new BorderLayout(10, 10));
+        panelViewExamManagement.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // --- FORM PANEL (NORTH) ---
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createTitledBorder("Thông tin đề thi"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Exam ID
+        gbc.gridx = 0; gbc.gridy = 0;
+        formPanel.add(new JLabel("Mã Đề Thi:"), gbc);
+        gbc.gridx = 1;
+        textfieldExamIDViewExamManagement = new JTextField(20);
+        textfieldExamIDViewExamManagement.setEnabled(false);
+        formPanel.add(textfieldExamIDViewExamManagement, gbc);
+
+        // Subject Name
+        gbc.gridx = 0; gbc.gridy = 1;
+        formPanel.add(new JLabel("Tên Môn Thi:"), gbc);
+        gbc.gridx = 1;
+        textfieldSubjectNameViewExamManagement = new JTextField(20);
+        formPanel.add(textfieldSubjectNameViewExamManagement, gbc);
+
+        // Total Questions
+        gbc.gridx = 2; gbc.gridy = 0;
+        formPanel.add(new JLabel("Số Câu Hỏi:"), gbc);
+        gbc.gridx = 3;
+        textfieldTotalQuestionViewExamManagement = new JTextField(10);
+        formPanel.add(textfieldTotalQuestionViewExamManagement, gbc);
+
+        // Total Score
+        gbc.gridx = 2; gbc.gridy = 1;
+        formPanel.add(new JLabel("Điểm Tổng:"), gbc);
+        gbc.gridx = 3;
+        textfieldTotalScoreViewExamManagement = new JTextField(10);
+        formPanel.add(textfieldTotalScoreViewExamManagement, gbc);
+
+        panelViewExamManagement.add(formPanel, BorderLayout.NORTH);
+
+        // --- TABLE PANEL (CENTER) ---
         columnModel = new DefaultTableModel(
                 new Object[][]{},
                 new String[]{"Mã Đề Thi", "Tên Môn Thi", "Số Câu Hỏi", "Điểm Tổng", "Điểm Mỗi Câu"}
@@ -89,77 +129,91 @@ public class ExamManagement extends JFrame {
                 return false; // Make table read-only
             }
         };
+        tableViewExamManagement = new JTable(columnModel);
+        tableViewExamManagement.getTableHeader().setReorderingAllowed(false);
+        rowModel = (DefaultTableModel) tableViewExamManagement.getModel();
+        JScrollPane scrollPane = new JScrollPane(tableViewExamManagement);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Danh sách đề thi"));
+        panelViewExamManagement.add(scrollPane, BorderLayout.CENTER);
 
-        if (tableViewExamManagement != null) {
-            tableViewExamManagement.setModel(columnModel);
-            tableViewExamManagement.getTableHeader().setReorderingAllowed(false);
-            rowModel = (DefaultTableModel) tableViewExamManagement.getModel();
-        }
 
-        if (textfieldExamIDViewExamManagement != null) {
-            textfieldExamIDViewExamManagement.setEnabled(false);
-        }
+        // --- BUTTONS PANEL (SOUTH) ---
+        JPanel southPanel = new JPanel(new BorderLayout(10,10));
+
+        // Action Buttons
+        JPanel actionButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        buttonAddViewExamManagement = new JButton("Thêm");
+        buttonUpdateViewExamManagement = new JButton("Cập nhật");
+        buttonDeleteViewExamManagement = new JButton("Xóa");
+        buttonRefreshViewExamManagement = new JButton("Làm mới");
+        actionButtonsPanel.add(buttonAddViewExamManagement);
+        actionButtonsPanel.add(buttonUpdateViewExamManagement);
+        actionButtonsPanel.add(buttonDeleteViewExamManagement);
+        actionButtonsPanel.add(buttonRefreshViewExamManagement);
+        southPanel.add(actionButtonsPanel, BorderLayout.NORTH);
+
+        // Search and Back buttons
+        JPanel searchBackPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        searchBackPanel.add(new JLabel("Tìm kiếm:"));
+        textfieldFindViewExamManagement = new JTextField(20);
+        searchBackPanel.add(textfieldFindViewExamManagement);
+        buttonBackViewExamManagement = new JButton("Quay lại");
+        searchBackPanel.add(buttonBackViewExamManagement);
+        southPanel.add(searchBackPanel, BorderLayout.SOUTH);
+
+        panelViewExamManagement.add(southPanel, BorderLayout.SOUTH);
     }
 
     private void addActionEvent() {
         // Table mouse click event
-        if (tableViewExamManagement != null) {
-            tableViewExamManagement.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    handleTableRowSelection();
-                }
-            });
-        }
+        tableViewExamManagement.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                handleTableRowSelection();
+            }
+        });
 
         // Add button
-        if (buttonAddViewExamManagement != null) {
-            buttonAddViewExamManagement.addActionListener(e -> handleAdd());
-        }
+        buttonAddViewExamManagement.addActionListener(e -> handleAdd());
 
         // Update button
-        if (buttonUpdateViewExamManagement != null) {
-            buttonUpdateViewExamManagement.addActionListener(e -> handleUpdate());
-        }
+        buttonUpdateViewExamManagement.addActionListener(e -> handleUpdate());
 
         // Delete button
-        if (buttonDeleteViewExamManagement != null) {
-            buttonDeleteViewExamManagement.addActionListener(e -> handleDelete());
-        }
+        buttonDeleteViewExamManagement.addActionListener(e -> handleDelete());
 
         // Refresh button
-        if (buttonRefreshViewExamManagement != null) {
-            buttonRefreshViewExamManagement.addActionListener(e -> {
-                resetInputFields();
-                loadExamData();
-                if (textfieldFindViewExamManagement != null) {
-                    textfieldFindViewExamManagement.setText("");
-                }
-            });
-        }
+        buttonRefreshViewExamManagement.addActionListener(e -> {
+            resetInputFields();
+            loadExamData();
+            textfieldFindViewExamManagement.setText("");
+        });
 
         // Back button
-        if (buttonBackViewExamManagement != null) {
-            buttonBackViewExamManagement.addActionListener(e -> {
-                this.dispose();
-                if (loginUser.getUserId().equals(Login.username_admin)) {
-                    new MenuAdmin(loginUser);
-                } else {
-                    new MenuHost(loginUser);
-                }
-            });
-        }
+        buttonBackViewExamManagement.addActionListener(e -> {
+            this.dispose();
+            // Assuming MenuAdmin is for admins and MenuHost for hosts.
+            // You might need to adjust this logic based on your application's roles.
+             if (loginUser.isHost()) { // A simple check, might need to be more robust
+                new MenuHost(loginUser);
+            } else {
+                new MenuAdmin(loginUser);
+            }
+        });
     }
 
     private void handleTableRowSelection() {
         int modelRow = tableViewExamManagement.getSelectedRow();
         if (modelRow != -1) {
-            int sortedRow = tableViewExamManagement.convertRowIndexToModel(modelRow);
-            chosenExam = examList.get(sortedRow);
-            textfieldExamIDViewExamManagement.setText(String.valueOf(chosenExam.getExamId()));
-            textfieldSubjectNameViewExamManagement.setText(chosenExam.getSubject());
-            textfieldTotalQuestionViewExamManagement.setText(String.valueOf(chosenExam.getTotalQuestion()));
-            textfieldTotalScoreViewExamManagement.setText(String.valueOf(chosenExam.getTotalScore()));
+            int viewRow = tableViewExamManagement.convertRowIndexToModel(modelRow);
+            // Ensure index is valid for the underlying list
+            if (viewRow >= 0 && viewRow < examList.size()) {
+                chosenExam = examList.get(viewRow);
+                textfieldExamIDViewExamManagement.setText(String.valueOf(chosenExam.getExamId()));
+                textfieldSubjectNameViewExamManagement.setText(chosenExam.getSubject());
+                textfieldTotalQuestionViewExamManagement.setText(String.valueOf(chosenExam.getTotalQuestion()));
+                textfieldTotalScoreViewExamManagement.setText(String.valueOf(chosenExam.getTotalScore()));
+            }
         }
     }
 
@@ -170,7 +224,12 @@ public class ExamManagement extends JFrame {
 
         // Validate input
         if (subject.isEmpty() || totalQuestionStr.isEmpty() || totalScoreStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Các trường thông tin không được bỏ trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Các trường thông tin không được bỏ trống!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
@@ -179,48 +238,67 @@ public class ExamManagement extends JFrame {
             int totalScore = Integer.parseInt(totalScoreStr);
 
             if (totalQuestion <= 0 || totalScore <= 0) {
-                JOptionPane.showMessageDialog(this, "Số câu hỏi và tổng điểm phải lớn hơn 0!", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Số câu hỏi và tổng điểm phải lớn hơn 0!",
+                        "Lỗi nhập liệu",
+                        JOptionPane.ERROR_MESSAGE
+                );
                 return;
             }
 
             double scorePerQuestion = totalScore / (double) totalQuestion;
             Exam newExam = new Exam(subject, totalQuestion, totalScore, scorePerQuestion);
 
-            // Use SwingWorker to perform RMI call in the background
-            new SwingWorker<Boolean, Void>() {
-                @Override
-                protected Boolean doInBackground() throws Exception {
-                    return examService.save(newExam);
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        boolean success = get();
-                        if (success) {
-                            JOptionPane.showMessageDialog(ExamManagement.this, "Thêm đề thi thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                            loadExamData();
-                            resetInputFields();
-                        } else {
-                            JOptionPane.showMessageDialog(ExamManagement.this, "Thêm đề thi thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                        }
-                    } catch (InterruptedException | ExecutionException e) {
-                        handleRemoteException(e);
-                    } finally {
-                        setCursor(Cursor.getDefaultCursor());
-                    }
-                }
-            }.execute();
+            // Call RMI service
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            boolean success = examService.save(newExam);
+            setCursor(Cursor.getDefaultCursor());
 
+            if (success) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Thêm đề thi thành công!",
+                        "Thành công",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                loadExamData();
+                resetInputFields();
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Thêm đề thi thất bại!",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Số câu hỏi và tổng điểm phải là số nguyên!", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Số câu hỏi và tổng điểm phải là số nguyên!",
+                    "Lỗi nhập liệu",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        } catch (RemoteException e) {
+            setCursor(Cursor.getDefaultCursor());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi kết nối server:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
     }
 
     private void handleUpdate() {
         if (chosenExam == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn đề thi cần cập nhật!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng chọn đề thi cần cập nhật!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
@@ -229,7 +307,12 @@ public class ExamManagement extends JFrame {
         String totalScoreStr = textfieldTotalScoreViewExamManagement.getText().strip();
 
         if (subject.isEmpty() || totalQuestionStr.isEmpty() || totalScoreStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Các trường thông tin không được bỏ trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Các trường thông tin không được bỏ trống!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
@@ -238,7 +321,12 @@ public class ExamManagement extends JFrame {
             int totalScore = Integer.parseInt(totalScoreStr);
 
             if (totalQuestion <= 0 || totalScore <= 0) {
-                JOptionPane.showMessageDialog(this, "Số câu hỏi và tổng điểm phải lớn hơn 0!", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Số câu hỏi và tổng điểm phải lớn hơn 0!",
+                        "Lỗi nhập liệu",
+                        JOptionPane.ERROR_MESSAGE
+                );
                 return;
             }
 
@@ -247,103 +335,128 @@ public class ExamManagement extends JFrame {
             chosenExam.setTotalScore(totalScore);
             chosenExam.setScorePerQuestion(totalScore / (double) totalQuestion);
 
-            new SwingWorker<Boolean, Void>() {
-                @Override
-                protected Boolean doInBackground() throws Exception {
-                    return examService.update(chosenExam);
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        boolean success = get();
-                        if (success) {
-                            JOptionPane.showMessageDialog(ExamManagement.this, "Cập nhật đề thi thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                            loadExamData();
-                            resetInputFields();
-                        } else {
-                            JOptionPane.showMessageDialog(ExamManagement.this, "Cập nhật đề thi thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                        }
-                    } catch (InterruptedException | ExecutionException e) {
-                        handleRemoteException(e);
-                    } finally {
-                        setCursor(Cursor.getDefaultCursor());
-                    }
-                }
-            }.execute();
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            boolean success = examService.update(chosenExam);
+            setCursor(Cursor.getDefaultCursor());
 
+            if (success) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Cập nhật đề thi thành công!",
+                        "Thành công",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                loadExamData();
+                resetInputFields();
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Cập nhật đề thi thất bại!",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Số câu hỏi và tổng điểm phải là số nguyên!", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Số câu hỏi và tổng điểm phải là số nguyên!",
+                    "Lỗi nhập liệu",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        } catch (RemoteException e) {
+            setCursor(Cursor.getDefaultCursor());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi kết nối server:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
         }
     }
 
     private void handleDelete() {
         if (chosenExam == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn đề thi cần xóa!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Vui lòng chọn đề thi cần xóa!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa đề thi này?\nLưu ý: Tất cả câu hỏi liên quan cũng sẽ bị xóa!", "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc muốn xóa đề thi này?\nLưu ý: Tất cả câu hỏi liên quan cũng sẽ bị xóa!",
+                "Xác nhận xóa",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
 
         if (confirm == JOptionPane.YES_OPTION) {
-            new SwingWorker<Boolean, Void>() {
-                @Override
-                protected Boolean doInBackground() throws Exception {
-                    return examService.delete(chosenExam.getExamId());
-                }
+            try {
+                setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+                boolean success = examService.delete(chosenExam.getExamId());
+                setCursor(Cursor.getDefaultCursor());
 
-                @Override
-                protected void done() {
-                    try {
-                        boolean success = get();
-                        if (success) {
-                            JOptionPane.showMessageDialog(ExamManagement.this, "Xóa đề thi thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                            loadExamData();
-                            resetInputFields();
-                        } else {
-                            JOptionPane.showMessageDialog(ExamManagement.this, "Xóa đề thi thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                        }
-                    } catch (InterruptedException | ExecutionException e) {
-                        handleRemoteException(e);
-                    } finally {
-                        setCursor(Cursor.getDefaultCursor());
-                    }
+                if (success) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Xóa đề thi thành công!",
+                            "Thành công",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                    loadExamData();
+                    resetInputFields();
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Xóa đề thi thất bại!",
+                            "Lỗi",
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
-            }.execute();
-            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            } catch (RemoteException e) {
+                setCursor(Cursor.getDefaultCursor());
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi kết nối server:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+                e.printStackTrace();
+            }
         }
     }
 
     private void loadExamData() {
-        new SwingWorker<List<Exam>, Void>() {
-            @Override
-            protected List<Exam> doInBackground() throws Exception {
-                return examService.getAll();
-            }
+        if (rowModel == null) return; // Guard against null model
+        try {
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            examList = examService.getAll();
+            rowModel.setRowCount(0);
 
-            @Override
-            protected void done() {
-                try {
-                    examList = get();
-                    rowModel.setRowCount(0); // Clear existing data
-                    for (Exam exam : examList) {
-                        rowModel.addRow(new Object[]{
-                                exam.getExamId(),
-                                exam.getSubject(),
-                                exam.getTotalQuestion(),
-                                exam.getTotalScore(),
-                                String.format("%.2f", exam.getScorePerQuestion())
-                        });
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    handleRemoteException(e);
-                } finally {
-                    setCursor(Cursor.getDefaultCursor());
-                }
+            for (Exam exam : examList) {
+                rowModel.addRow(new Object[]{
+                        exam.getExamId(),
+                        exam.getSubject(),
+                        exam.getTotalQuestion(),
+                        exam.getTotalScore(),
+                        String.format("%.2f", exam.getScorePerQuestion())
+                });
             }
-        }.execute();
-        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            setCursor(Cursor.getDefaultCursor());
+        } catch (RemoteException e) {
+            setCursor(Cursor.getDefaultCursor());
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi tải dữ liệu từ server:\n" + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
+        }
     }
 
     private void makeTableSearchable() {
@@ -353,43 +466,31 @@ public class ExamManagement extends JFrame {
 
             textfieldFindViewExamManagement.getDocument().addDocumentListener(new DocumentListener() {
                 @Override
-                public void insertUpdate(DocumentEvent e) { filter(); }
+                public void insertUpdate(DocumentEvent e) {
+                    filter();
+                }
+
                 @Override
-                public void removeUpdate(DocumentEvent e) { filter(); }
+                public void removeUpdate(DocumentEvent e) {
+                    filter();
+                }
+
                 @Override
-                public void changedUpdate(DocumentEvent e) { filter(); }
+                public void changedUpdate(DocumentEvent e) {
+                    filter();
+                }
 
                 private void filter() {
                     String text = textfieldFindViewExamManagement.getText().strip();
                     if (text.isEmpty()) {
                         rowSorter.setRowFilter(null);
                     } else {
+                        // Case-insensitive search on all columns
                         rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
                     }
                 }
             });
         }
-    }
-    
-    private void handleRemoteException(Exception e) {
-        setCursor(Cursor.getDefaultCursor());
-        Throwable cause = e.getCause();
-        if (cause instanceof RemoteException) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Lỗi kết nối server:\n" + cause.getMessage(),
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        } else {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Lỗi không xác định:\n" + e.getMessage(),
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-            );
-        }
-        e.printStackTrace();
     }
 
     private void resetInputFields() {

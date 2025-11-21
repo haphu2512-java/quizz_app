@@ -20,14 +20,14 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 public class QuestionManagement extends JFrame {
-    private  User loginUser;
+    private final User loginUser;
     private  QuestionService questionService;
     private  ExamService examService;
 
     private JPanel panelViewQuestionManagement;
     private JTextField textfieldQuestionIDViewQuestionManagement;
     private JTextField textfieldExamIDViewQuestionManagement;
-    private JTextField textfieldQuestionContentViewQuestionManagement;
+    private JTextArea textfieldQuestionContentViewQuestionManagement;
     private JComboBox<String> comboboxLevelViewQuestionManagement;
     private JButton buttonAddViewQuestionManagement;
     private JButton buttonUpdateViewQuestionManagement;
@@ -77,6 +77,52 @@ public class QuestionManagement extends JFrame {
     }
 
     private void initComponents() {
+        panelViewQuestionManagement = new JPanel(new BorderLayout(10, 10));
+        panelViewQuestionManagement.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // --- FORM PANEL (NORTH) ---
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createTitledBorder("Thông tin câu hỏi"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Question ID
+        gbc.gridx = 0; gbc.gridy = 0;
+        formPanel.add(new JLabel("Mã Câu Hỏi:"), gbc);
+        gbc.gridx = 1;
+        textfieldQuestionIDViewQuestionManagement = new JTextField(15);
+        textfieldQuestionIDViewQuestionManagement.setEnabled(false);
+        formPanel.add(textfieldQuestionIDViewQuestionManagement, gbc);
+
+        // Exam ID
+        gbc.gridx = 2; gbc.gridy = 0;
+        formPanel.add(new JLabel("Mã Đề Thi:"), gbc);
+        gbc.gridx = 3;
+        textfieldExamIDViewQuestionManagement = new JTextField(15);
+        formPanel.add(textfieldExamIDViewQuestionManagement, gbc);
+
+        // Level
+        gbc.gridx = 0; gbc.gridy = 1;
+        formPanel.add(new JLabel("Mức độ:"), gbc);
+        gbc.gridx = 1;
+        comboboxLevelViewQuestionManagement = new JComboBox<>(new String[]{"1", "2", "3", "4", "5"});
+        formPanel.add(comboboxLevelViewQuestionManagement, gbc);
+        
+        // Content
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 1;
+        formPanel.add(new JLabel("Nội dung:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 2; gbc.gridwidth = 3; gbc.fill = GridBagConstraints.BOTH;
+        textfieldQuestionContentViewQuestionManagement = new JTextArea(3, 40);
+        textfieldQuestionContentViewQuestionManagement.setLineWrap(true);
+        textfieldQuestionContentViewQuestionManagement.setWrapStyleWord(true);
+        JScrollPane contentScrollPane = new JScrollPane(textfieldQuestionContentViewQuestionManagement);
+        formPanel.add(contentScrollPane, gbc);
+
+
+        panelViewQuestionManagement.add(formPanel, BorderLayout.NORTH);
+
+        // --- TABLE PANEL (CENTER) ---
         columnModel = new DefaultTableModel(
                 new Object[][]{},
                 new String[]{"Mã Câu hỏi", "Mã Đề thi", "Mức độ", "Nội dung"}
@@ -86,93 +132,94 @@ public class QuestionManagement extends JFrame {
                 return false;
             }
         };
+        tableViewQuestionManagement = new JTable(columnModel);
+        tableViewQuestionManagement.getTableHeader().setReorderingAllowed(false);
+        rowModel = (DefaultTableModel) tableViewQuestionManagement.getModel();
+        JScrollPane tableScrollPane = new JScrollPane(tableViewQuestionManagement);
+        tableScrollPane.setBorder(BorderFactory.createTitledBorder("Danh sách câu hỏi"));
+        panelViewQuestionManagement.add(tableScrollPane, BorderLayout.CENTER);
 
-        if (tableViewQuestionManagement != null) {
-            tableViewQuestionManagement.setModel(columnModel);
-            tableViewQuestionManagement.getTableHeader().setReorderingAllowed(false);
-            rowModel = (DefaultTableModel) tableViewQuestionManagement.getModel();
-        }
 
-        if (textfieldQuestionIDViewQuestionManagement != null) {
-            textfieldQuestionIDViewQuestionManagement.setEnabled(false);
-        }
+        // --- BUTTONS PANEL (SOUTH) ---
+        JPanel southPanel = new JPanel(new BorderLayout(10,10));
 
-        if (comboboxLevelViewQuestionManagement != null) {
-            comboboxLevelViewQuestionManagement.setModel(
-                    new DefaultComboBoxModel<>(new String[]{"1", "2", "3", "4", "5"})
-            );
-        }
+        JPanel actionButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
+        buttonAddViewQuestionManagement = new JButton("Thêm");
+        buttonUpdateViewQuestionManagement = new JButton("Cập nhật");
+        buttonDeleteViewQuestionManagement = new JButton("Xóa");
+        buttonRefreshViewQuestionManagement = new JButton("Làm mới");
+        buttonQuestionAnswerViewQuestionMangagement = new JButton("Quản lý Đáp án");
+        
+        actionButtonsPanel.add(buttonAddViewQuestionManagement);
+        actionButtonsPanel.add(buttonUpdateViewQuestionManagement);
+        actionButtonsPanel.add(buttonDeleteViewQuestionManagement);
+        actionButtonsPanel.add(buttonRefreshViewQuestionManagement);
+        actionButtonsPanel.add(buttonQuestionAnswerViewQuestionMangagement);
+        southPanel.add(actionButtonsPanel, BorderLayout.NORTH);
+
+        JPanel searchBackPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        searchBackPanel.add(new JLabel("Tìm kiếm:"));
+        textfieldFindViewQuestionManagement = new JTextField(20);
+        searchBackPanel.add(textfieldFindViewQuestionManagement);
+        buttonBackViewQuestionManagement = new JButton("Quay lại");
+        searchBackPanel.add(buttonBackViewQuestionManagement);
+        southPanel.add(searchBackPanel, BorderLayout.SOUTH);
+
+        panelViewQuestionManagement.add(southPanel, BorderLayout.SOUTH);
     }
 
     private void addActionEvent() {
-        if (tableViewQuestionManagement != null) {
-            tableViewQuestionManagement.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    handleTableRowSelection();
-                }
-            });
-        }
+        tableViewQuestionManagement.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                handleTableRowSelection();
+            }
+        });
 
-        if (buttonAddViewQuestionManagement != null) {
-            buttonAddViewQuestionManagement.addActionListener(e -> handleAdd());
-        }
+        buttonAddViewQuestionManagement.addActionListener(e -> handleAdd());
+        buttonUpdateViewQuestionManagement.addActionListener(e -> handleUpdate());
+        buttonDeleteViewQuestionManagement.addActionListener(e -> handleDelete());
 
-        if (buttonUpdateViewQuestionManagement != null) {
-            buttonUpdateViewQuestionManagement.addActionListener(e -> handleUpdate());
-        }
+        buttonQuestionAnswerViewQuestionMangagement.addActionListener(e -> {
+            if(chosenQuestion == null) {
+                 JOptionPane.showMessageDialog(this, "Vui lòng chọn một câu hỏi để quản lý đáp án.", "Chưa chọn câu hỏi", JOptionPane.WARNING_MESSAGE);
+                 return;
+            }
+            new QuestionAnswerManagement(loginUser, chosenQuestion);
+            this.dispose();
+        });
 
-        if (buttonDeleteViewQuestionManagement != null) {
-            buttonDeleteViewQuestionManagement.addActionListener(e -> handleDelete());
-        }
+        buttonRefreshViewQuestionManagement.addActionListener(e -> {
+            resetInputFields();
+            loadQuestionData();
+            textfieldFindViewQuestionManagement.setText("");
+        });
 
-        if (buttonQuestionAnswerViewQuestionMangagement != null) {
-            buttonQuestionAnswerViewQuestionMangagement.addActionListener(e -> {
-                new QuestionAnswerManagement(loginUser);
-            });
-        }
-
-        if (buttonRefreshViewQuestionManagement != null) {
-            buttonRefreshViewQuestionManagement.addActionListener(e -> {
-                resetInputFields();
-                loadQuestionData();
-                if (textfieldFindViewQuestionManagement != null) {
-                    textfieldFindViewQuestionManagement.setText("");
-                }
-            });
-        }
-
-        if (buttonBackViewQuestionManagement != null) {
-            buttonBackViewQuestionManagement.addActionListener(e -> {
-                this.dispose();
-                if (loginUser.getUserId().equals(Login.username_admin)) {
-                    new MenuAdmin(loginUser);
-                } else {
-                    new MenuHost(loginUser);
-                }
-            });
-        }
+        buttonBackViewQuestionManagement.addActionListener(e -> {
+            this.dispose();
+             if (loginUser.isHost()) { 
+                new MenuHost(loginUser);
+            } else {
+                new MenuAdmin(loginUser);
+            }
+        });
     }
 
     private void handleTableRowSelection() {
-        resetInputFields();
+        textfieldQuestionIDViewQuestionManagement.setEnabled(false);
 
-        if (textfieldQuestionIDViewQuestionManagement != null) {
-            textfieldQuestionIDViewQuestionManagement.setEnabled(false);
-        }
+        int modelRow = tableViewQuestionManagement.getSelectedRow();
+        if (modelRow != -1) {
+            int viewRow = tableViewQuestionManagement.convertRowIndexToModel(modelRow);
+             if (viewRow >= 0 && viewRow < questionList.size()) {
+                chosenQuestion = questionList.get(viewRow);
+                textfieldQuestionIDViewQuestionManagement.setText(String.valueOf(chosenQuestion.getQuestionId()));
 
-        int index = tableViewQuestionManagement.getSelectedRow();
-        if (index >= 0 && index < questionList.size()) {
-            chosenQuestion = questionList.get(index);
-            textfieldQuestionIDViewQuestionManagement.setText(String.valueOf(chosenQuestion.getQuestionId()));
+                if (chosenQuestion.getExam() != null) {
+                    textfieldExamIDViewQuestionManagement.setText(String.valueOf(chosenQuestion.getExam().getExamId()));
+                }
 
-            if (chosenQuestion.getExam() != null) {
-                textfieldExamIDViewQuestionManagement.setText(String.valueOf(chosenQuestion.getExam().getExamId()));
-            }
-
-            textfieldQuestionContentViewQuestionManagement.setText(chosenQuestion.getContent());
-
-            if (comboboxLevelViewQuestionManagement != null) {
+                textfieldQuestionContentViewQuestionManagement.setText(chosenQuestion.getContent());
                 comboboxLevelViewQuestionManagement.setSelectedIndex(chosenQuestion.getLevel() - 1);
             }
         }
@@ -181,8 +228,7 @@ public class QuestionManagement extends JFrame {
     private void handleAdd() {
         String examIDStr = textfieldExamIDViewQuestionManagement.getText().strip();
         String content = textfieldQuestionContentViewQuestionManagement.getText().strip();
-        int level = comboboxLevelViewQuestionManagement != null ?
-                comboboxLevelViewQuestionManagement.getSelectedIndex() + 1 : 1;
+        int level = comboboxLevelViewQuestionManagement.getSelectedIndex() + 1;
 
         if (examIDStr.isEmpty() || content.isEmpty()) {
             JOptionPane.showMessageDialog(
@@ -265,8 +311,7 @@ public class QuestionManagement extends JFrame {
 
         String examIDStr = textfieldExamIDViewQuestionManagement.getText().strip();
         String content = textfieldQuestionContentViewQuestionManagement.getText().strip();
-        int level = comboboxLevelViewQuestionManagement != null ?
-                comboboxLevelViewQuestionManagement.getSelectedIndex() + 1 : 1;
+        int level = comboboxLevelViewQuestionManagement.getSelectedIndex() + 1;
 
         if (examIDStr.isEmpty() || content.isEmpty()) {
             JOptionPane.showMessageDialog(
@@ -395,6 +440,7 @@ public class QuestionManagement extends JFrame {
     }
 
     private void loadQuestionData() {
+        if (rowModel == null) return;
         try {
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             questionList = questionService.getAll();
@@ -427,11 +473,6 @@ public class QuestionManagement extends JFrame {
     private void makeTableSearchable() {
         if (textfieldFindViewQuestionManagement != null && tableViewQuestionManagement != null) {
             rowSorter = new TableRowSorter<>(rowModel);
-
-            for (int i = 0; i < columnModel.getColumnCount(); i++) {
-                rowSorter.setSortable(i, false);
-            }
-
             tableViewQuestionManagement.setRowSorter(rowSorter);
 
             textfieldFindViewQuestionManagement.getDocument().addDocumentListener(new DocumentListener() {
@@ -463,23 +504,11 @@ public class QuestionManagement extends JFrame {
     }
 
     private void resetInputFields() {
-        if (textfieldQuestionIDViewQuestionManagement != null) {
-            textfieldQuestionIDViewQuestionManagement.setText("");
-        }
-        if (textfieldExamIDViewQuestionManagement != null) {
-            textfieldExamIDViewQuestionManagement.setText("");
-        }
-        if (textfieldQuestionContentViewQuestionManagement != null) {
-            textfieldQuestionContentViewQuestionManagement.setText("");
-        }
-        if (comboboxLevelViewQuestionManagement != null) {
-            comboboxLevelViewQuestionManagement.setSelectedIndex(0);
-        }
-
+        textfieldQuestionIDViewQuestionManagement.setText("");
+        textfieldExamIDViewQuestionManagement.setText("");
+        textfieldQuestionContentViewQuestionManagement.setText("");
+        comboboxLevelViewQuestionManagement.setSelectedIndex(0);
         chosenQuestion = null;
-
-        if (tableViewQuestionManagement != null) {
-            tableViewQuestionManagement.clearSelection();
-        }
+        tableViewQuestionManagement.clearSelection();
     }
 }

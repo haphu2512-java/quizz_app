@@ -18,12 +18,12 @@ import java.util.List;
 
 public class UserManagement extends JFrame {
     private final User loginUser;
-    private final UserService userService;
+    private  UserService userService;
 
     private JPanel panelViewUserManagement;
     private JTextField textfieldUserIDViewUserManagement;
     private JTextField textfieldFullnameViewUserManagement;
-    private JTextField textfieldPasswordViewUserManagement;
+    private JPasswordField textfieldPasswordViewUserManagement;
     private JRadioButton radiobuttonHostViewUserManagement;
     private JRadioButton radiobuttonAttendeeViewUserManagement;
     private JButton buttonAddViewUserManagement;
@@ -75,12 +75,62 @@ public class UserManagement extends JFrame {
     }
 
     private void initComponents() {
-        buttonGroupViewUserManagement = new ButtonGroup();
-        if (radiobuttonHostViewUserManagement != null && radiobuttonAttendeeViewUserManagement != null) {
-            buttonGroupViewUserManagement.add(radiobuttonHostViewUserManagement);
-            buttonGroupViewUserManagement.add(radiobuttonAttendeeViewUserManagement);
-        }
+        panelViewUserManagement = new JPanel(new BorderLayout(10, 10));
+        panelViewUserManagement.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
+        // --- FORM PANEL (NORTH) ---
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createTitledBorder("Thông tin người dùng"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // User ID
+        gbc.gridx = 0; gbc.gridy = 0;
+        formPanel.add(new JLabel("UserID:"), gbc);
+        gbc.gridx = 1;
+        textfieldUserIDViewUserManagement = new JTextField(20);
+        formPanel.add(textfieldUserIDViewUserManagement, gbc);
+
+        // Full Name
+        gbc.gridx = 0; gbc.gridy = 1;
+        formPanel.add(new JLabel("Họ Tên:"), gbc);
+        gbc.gridx = 1;
+        textfieldFullnameViewUserManagement = new JTextField(20);
+        formPanel.add(textfieldFullnameViewUserManagement, gbc);
+
+        // Password
+        gbc.gridx = 2; gbc.gridy = 0;
+        formPanel.add(new JLabel("Mật khẩu:"), gbc);
+        gbc.gridx = 3;
+        textfieldPasswordViewUserManagement = new JPasswordField(20);
+        formPanel.add(textfieldPasswordViewUserManagement, gbc);
+        
+        // Change Password Checkbox
+        gbc.gridx = 4; gbc.gridy = 0;
+        checkboxChangePasswordViewUserManagement = new JCheckBox("Đổi mật khẩu");
+        checkboxChangePasswordViewUserManagement.setSelected(true);
+        formPanel.add(checkboxChangePasswordViewUserManagement, gbc);
+
+        // Role
+        gbc.gridx = 2; gbc.gridy = 1;
+        formPanel.add(new JLabel("Vai trò:"), gbc);
+        
+        JPanel rolePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        radiobuttonHostViewUserManagement = new JRadioButton("Host");
+        radiobuttonAttendeeViewUserManagement = new JRadioButton("Attendee");
+        buttonGroupViewUserManagement = new ButtonGroup();
+        buttonGroupViewUserManagement.add(radiobuttonHostViewUserManagement);
+        buttonGroupViewUserManagement.add(radiobuttonAttendeeViewUserManagement);
+        rolePanel.add(radiobuttonHostViewUserManagement);
+        rolePanel.add(radiobuttonAttendeeViewUserManagement);
+        
+        gbc.gridx = 3;
+        formPanel.add(rolePanel, gbc);
+
+        panelViewUserManagement.add(formPanel, BorderLayout.NORTH);
+
+        // --- TABLE PANEL (CENTER) ---
         columnModel = new DefaultTableModel(
                 new Object[][]{},
                 new String[]{"UserID", "Họ Tên", "Mật Khẩu", "Vai trò"}
@@ -90,96 +140,93 @@ public class UserManagement extends JFrame {
                 return false;
             }
         };
+        tableViewUserManagement = new JTable(columnModel);
+        tableViewUserManagement.getTableHeader().setReorderingAllowed(false);
+        rowModel = (DefaultTableModel) tableViewUserManagement.getModel();
+        JScrollPane scrollPane = new JScrollPane(tableViewUserManagement);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Danh sách người dùng"));
+        panelViewUserManagement.add(scrollPane, BorderLayout.CENTER);
 
-        if (tableViewUserManagement != null) {
-            tableViewUserManagement.setModel(columnModel);
-            tableViewUserManagement.getTableHeader().setReorderingAllowed(false);
-            rowModel = (DefaultTableModel) tableViewUserManagement.getModel();
-        }
+        // --- BUTTONS PANEL (SOUTH) ---
+        JPanel southPanel = new JPanel(new BorderLayout(10,10));
 
-        if (checkboxChangePasswordViewUserManagement != null) {
-            checkboxChangePasswordViewUserManagement.setSelected(true);
-        }
+        JPanel actionButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        buttonAddViewUserManagement = new JButton("Thêm");
+        buttonUpdateViewUserManagement = new JButton("Cập nhật");
+        buttonDeleteViewUserManagement = new JButton("Xóa");
+        buttonRefreshViewUserManagement = new JButton("Làm mới");
+        actionButtonsPanel.add(buttonAddViewUserManagement);
+        actionButtonsPanel.add(buttonUpdateViewUserManagement);
+        actionButtonsPanel.add(buttonDeleteViewUserManagement);
+        actionButtonsPanel.add(buttonRefreshViewUserManagement);
+        southPanel.add(actionButtonsPanel, BorderLayout.NORTH);
+
+        JPanel searchBackPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        searchBackPanel.add(new JLabel("Tìm kiếm:"));
+        textfieldFindViewUserManagement = new JTextField(20);
+        searchBackPanel.add(textfieldFindViewUserManagement);
+        buttonBackViewUserManagement = new JButton("Quay lại");
+        searchBackPanel.add(buttonBackViewUserManagement);
+        southPanel.add(searchBackPanel, BorderLayout.SOUTH);
+        
+        panelViewUserManagement.add(southPanel, BorderLayout.SOUTH);
     }
 
     private void addActionEvent() {
-        if (tableViewUserManagement != null) {
-            tableViewUserManagement.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    handleTableRowSelection();
-                }
-            });
-        }
+        tableViewUserManagement.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                handleTableRowSelection();
+            }
+        });
 
-        if (checkboxChangePasswordViewUserManagement != null && textfieldPasswordViewUserManagement != null) {
-            checkboxChangePasswordViewUserManagement.addActionListener(e ->
-                    textfieldPasswordViewUserManagement.setEnabled(
-                            checkboxChangePasswordViewUserManagement.isSelected()
-                    )
-            );
-        }
+        checkboxChangePasswordViewUserManagement.addActionListener(e ->
+                textfieldPasswordViewUserManagement.setEnabled(
+                        checkboxChangePasswordViewUserManagement.isSelected()
+                )
+        );
 
-        if (buttonAddViewUserManagement != null) {
-            buttonAddViewUserManagement.addActionListener(e -> handleAdd());
-        }
+        buttonAddViewUserManagement.addActionListener(e -> handleAdd());
+        buttonUpdateViewUserManagement.addActionListener(e -> handleUpdate());
+        buttonDeleteViewUserManagement.addActionListener(e -> handleDelete());
 
-        if (buttonUpdateViewUserManagement != null) {
-            buttonUpdateViewUserManagement.addActionListener(e -> handleUpdate());
-        }
-
-        if (buttonDeleteViewUserManagement != null) {
-            buttonDeleteViewUserManagement.addActionListener(e -> handleDelete());
-        }
-
-        if (buttonRefreshViewUserManagement != null) {
-            buttonRefreshViewUserManagement.addActionListener(e -> {
-                resetInputFields();
-                loadUserData();
-                if (textfieldFindViewUserManagement != null) {
-                    textfieldFindViewUserManagement.setText("");
-                }
-            });
-        }
-
-        if (buttonBackViewUserManagement != null) {
-            buttonBackViewUserManagement.addActionListener(e -> {
-                this.dispose();
-                if (loginUser.getUserId().equals(Login.username_admin)) {
-                    new MenuAdmin(loginUser);
-                } else {
-                    new MenuHost(loginUser);
-                }
-            });
-        }
+        buttonRefreshViewUserManagement.addActionListener(e -> {
+            resetInputFields();
+            loadUserData();
+            textfieldFindViewUserManagement.setText("");
+        });
+        
+        buttonBackViewUserManagement.addActionListener(e -> {
+            this.dispose();
+            if (loginUser.getUserId().equals(Login.username_admin)) {
+                new MenuAdmin(loginUser);
+            } else {
+                new MenuHost(loginUser);
+            }
+        });
     }
 
     private void handleTableRowSelection() {
-        resetInputFields();
+        textfieldUserIDViewUserManagement.setEnabled(false);
+        checkboxChangePasswordViewUserManagement.setSelected(false);
+        textfieldPasswordViewUserManagement.setEnabled(false);
 
-        if (textfieldUserIDViewUserManagement != null) {
-            textfieldUserIDViewUserManagement.setEnabled(false);
-        }
-        if (checkboxChangePasswordViewUserManagement != null) {
-            checkboxChangePasswordViewUserManagement.setSelected(false);
-        }
-        if (textfieldPasswordViewUserManagement != null) {
-            textfieldPasswordViewUserManagement.setEnabled(false);
-        }
+        int modelRow = tableViewUserManagement.getSelectedRow();
+        if(modelRow != -1) {
+            int viewRow = tableViewUserManagement.convertRowIndexToModel(modelRow);
+            if (viewRow >= 0 && viewRow < userList.size()) {
+                chosenUser = userList.get(viewRow);
+                passwordBeforeChanged = chosenUser.getPasswordHash();
 
-        int index = tableViewUserManagement.getSelectedRow();
-        if (index >= 0 && index < userList.size()) {
-            chosenUser = userList.get(index);
-            passwordBeforeChanged = chosenUser.getPasswordHash();
+                textfieldUserIDViewUserManagement.setText(chosenUser.getUserId());
+                textfieldFullnameViewUserManagement.setText(chosenUser.getFullName());
+                textfieldPasswordViewUserManagement.setText("••••••••"); // Masked password
 
-            textfieldUserIDViewUserManagement.setText(chosenUser.getUserId());
-            textfieldFullnameViewUserManagement.setText(chosenUser.getFullName());
-            textfieldPasswordViewUserManagement.setText("••••••••"); // Masked password
-
-            if (chosenUser.isHost()) {
-                radiobuttonHostViewUserManagement.setSelected(true);
-            } else {
-                radiobuttonAttendeeViewUserManagement.setSelected(true);
+                if (chosenUser.isHost()) {
+                    radiobuttonHostViewUserManagement.setSelected(true);
+                } else {
+                    radiobuttonAttendeeViewUserManagement.setSelected(true);
+                }
             }
         }
     }
@@ -187,9 +234,9 @@ public class UserManagement extends JFrame {
     private void handleAdd() {
         String userID = textfieldUserIDViewUserManagement.getText().strip();
         String fullName = textfieldFullnameViewUserManagement.getText().strip();
-        String password = textfieldPasswordViewUserManagement.getText().strip();
-        boolean isHost = radiobuttonHostViewUserManagement != null && radiobuttonHostViewUserManagement.isSelected();
-        boolean isAttendee = radiobuttonAttendeeViewUserManagement != null && radiobuttonAttendeeViewUserManagement.isSelected();
+        String password = new String(textfieldPasswordViewUserManagement.getPassword()).strip();
+        boolean isHost = radiobuttonHostViewUserManagement.isSelected();
+        boolean isAttendee = radiobuttonAttendeeViewUserManagement.isSelected();
 
         // Validate
         if (userID.isEmpty() || fullName.isEmpty() || password.isEmpty() || (!isHost && !isAttendee)) {
@@ -274,13 +321,24 @@ public class UserManagement extends JFrame {
         }
 
         String fullName = textfieldFullnameViewUserManagement.getText().strip();
-        String password = textfieldPasswordViewUserManagement.getText().strip();
-        boolean isHost = radiobuttonHostViewUserManagement != null && radiobuttonHostViewUserManagement.isSelected();
+        String password = new String(textfieldPasswordViewUserManagement.getPassword()).strip();
+        boolean isHost = radiobuttonHostViewUserManagement.isSelected();
 
-        if (fullName.isEmpty() || password.isEmpty()) {
+        if (fullName.isEmpty()) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Các trường thông tin không được bỏ trống!",
+                    "Họ tên không được bỏ trống!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+        
+        boolean passwordChanged = checkboxChangePasswordViewUserManagement.isSelected();
+        if(passwordChanged && password.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Mật khẩu không được bỏ trống khi cập nhật!",
                     "Cảnh báo",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -293,10 +351,6 @@ public class UserManagement extends JFrame {
             chosenUser.setFullName(fullName);
             chosenUser.setHost(isHost);
 
-            // Only update password if changed
-            boolean passwordChanged = checkboxChangePasswordViewUserManagement != null &&
-                    checkboxChangePasswordViewUserManagement.isSelected() &&
-                    !password.equals("••••••••");
             if (passwordChanged) {
                 chosenUser.setPasswordHash(password);
             } else {
@@ -356,6 +410,17 @@ public class UserManagement extends JFrame {
             );
             return;
         }
+        
+        if (chosenUser.getUserId().equals(loginUser.getUserId())) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không thể tự xóa tài khoản của chính mình!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
 
         int confirm = JOptionPane.showConfirmDialog(
                 this,
@@ -396,12 +461,13 @@ public class UserManagement extends JFrame {
                         "Lỗi",
                         JOptionPane.ERROR_MESSAGE
                 );
-                e.printStackTrace();
+e.printStackTrace();
             }
         }
     }
 
     private void loadUserData() {
+        if (rowModel == null) return;
         try {
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             userList = userService.getAll();
@@ -431,11 +497,6 @@ public class UserManagement extends JFrame {
     private void makeTableSearchable() {
         if (textfieldFindViewUserManagement != null && tableViewUserManagement != null) {
             rowSorter = new TableRowSorter<>(rowModel);
-
-            for (int i = 0; i < columnModel.getColumnCount(); i++) {
-                rowSorter.setSortable(i, false);
-            }
-
             tableViewUserManagement.setRowSorter(rowSorter);
 
             textfieldFindViewUserManagement.getDocument().addDocumentListener(new DocumentListener() {
@@ -467,29 +528,17 @@ public class UserManagement extends JFrame {
     }
 
     private void resetInputFields() {
-        if (textfieldUserIDViewUserManagement != null) {
-            textfieldUserIDViewUserManagement.setText("");
-            textfieldUserIDViewUserManagement.setEnabled(true);
-        }
-        if (textfieldFullnameViewUserManagement != null) {
-            textfieldFullnameViewUserManagement.setText("");
-        }
-        if (textfieldPasswordViewUserManagement != null) {
-            textfieldPasswordViewUserManagement.setText("");
-        }
-        if (buttonGroupViewUserManagement != null) {
-            buttonGroupViewUserManagement.clearSelection();
-        }
-        if (checkboxChangePasswordViewUserManagement != null) {
-            checkboxChangePasswordViewUserManagement.setSelected(true);
-            textfieldPasswordViewUserManagement.setEnabled(true);
-        }
+        textfieldUserIDViewUserManagement.setText("");
+        textfieldUserIDViewUserManagement.setEnabled(true);
+        textfieldFullnameViewUserManagement.setText("");
+        textfieldPasswordViewUserManagement.setText("");
+        buttonGroupViewUserManagement.clearSelection();
+        checkboxChangePasswordViewUserManagement.setSelected(true);
+        textfieldPasswordViewUserManagement.setEnabled(true);
 
         chosenUser = null;
         passwordBeforeChanged = null;
 
-        if (tableViewUserManagement != null) {
-            tableViewUserManagement.clearSelection();
-        }
+        tableViewUserManagement.clearSelection();
     }
 }
