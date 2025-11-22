@@ -274,3 +274,4 @@ public class QuestionAndAnswerForm extends JPanel {
         return buttonGroup.getSelection() != null;
     }
 }
+

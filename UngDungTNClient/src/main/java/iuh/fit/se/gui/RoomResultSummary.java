@@ -1,9 +1,12 @@
 package iuh.fit.se.gui;
 
 import entity.Enrollment;
+import entity.Room;
 import entity.User;
 import iuh.fit.se.util.ServiceFactory;
 import service.EnrollmentService;
+import service.RoomService;
+import service.UserService;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -13,11 +16,15 @@ import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.rmi.RemoteException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class RoomResultSummary extends JFrame {
     private final User loginUser;
     private EnrollmentService enrollmentService;
+    private UserService userService;
+    private RoomService roomService;
 
     private JPanel panelViewRoomResultSummary;
     private JTextField textfieldFindViewRoomResultSummary;
@@ -33,6 +40,8 @@ public class RoomResultSummary extends JFrame {
 
         try {
             this.enrollmentService = ServiceFactory.getEnrollmentService();
+            this.userService = ServiceFactory.getUserService();
+            this.roomService = ServiceFactory.getRoomService();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(
                     this,
@@ -115,15 +124,49 @@ public class RoomResultSummary extends JFrame {
             List<Enrollment> enrollments = enrollmentService.getAll();
             rowModel.setRowCount(0);
 
+            Map<String, String> userNameCache = new HashMap<>();
+            Map<Long, String> roomTitleCache = new HashMap<>();
+
             for (Enrollment enrollment : enrollments) {
-                String userId = enrollment.getUser() != null ?
-                        enrollment.getUser().getUserId() : "N/A";
-                String userName = enrollment.getUser() != null ?
-                        enrollment.getUser().getFullName() : "N/A";
-                String roomId = enrollment.getRoom() != null ?
-                        String.valueOf(enrollment.getRoom().getRoomId()) : "N/A";
-                String roomTitle = enrollment.getRoom() != null ?
-                        enrollment.getRoom().getTitle() : "N/A";
+                String userId = "N/A";
+                String userName = "N/A";
+                String roomId = "N/A";
+                String roomTitle = "N/A";
+
+                if (enrollment.getUser() != null) {
+                    userId = enrollment.getUser().getUserId();
+                    if (userNameCache.containsKey(userId)) {
+                        userName = userNameCache.get(userId);
+                    } else {
+                        try {
+                            User u = userService.findById(userId);
+                            if (u != null) {
+                                userName = u.getFullName();
+                                userNameCache.put(userId, userName);
+                            }
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+                if (enrollment.getRoom() != null) {
+                    long rId = enrollment.getRoom().getRoomId();
+                    roomId = String.valueOf(rId);
+                    if (roomTitleCache.containsKey(rId)) {
+                        roomTitle = roomTitleCache.get(rId);
+                    } else {
+                        try {
+                            Room r = roomService.findById(rId);
+                            if (r != null) {
+                                roomTitle = r.getTitle();
+                                roomTitleCache.put(rId, roomTitle);
+                            }
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
 
                 rowModel.addRow(new Object[]{
                         userId,

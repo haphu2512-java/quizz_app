@@ -6,6 +6,7 @@ import entity.Room;
 import entity.User;
 import iuh.fit.se.util.ServiceFactory;
 import service.EnrollmentService;
+import service.RoomService;
 import service.TakeExamService;
 
 import javax.swing.*;
@@ -16,13 +17,16 @@ import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.rmi.RemoteException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // ResultAttendee.java - Xem điểm của học viên
 public class ResultAttendee extends JFrame {
     private final User loginUser;
     private EnrollmentService enrollmentService;
     private TakeExamService takeExamService;
+    private RoomService roomService;
 
     private JPanel panelViewResultAttendee;
     private JTextField textfieldFindViewResultAttendee;
@@ -39,6 +43,7 @@ public class ResultAttendee extends JFrame {
         try {
             this.enrollmentService = ServiceFactory.getEnrollmentService();
             this.takeExamService = ServiceFactory.getTakeExamService();
+            this.roomService = ServiceFactory.getRoomService();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(
                     this,
@@ -121,18 +126,29 @@ public class ResultAttendee extends JFrame {
             List<Enrollment> enrollments = enrollmentService.selectByUserID(loginUser.getUserId());
             rowModel.setRowCount(0);
 
+            Map<Long, String> roomTitleCache = new HashMap<>();
+
             for (Enrollment enrollment : enrollments) {
                 String roomId = "N/A";
                 String roomTitle = "N/A";
                 double maxScore = 0;
 
                 if (enrollment.getRoom() != null) {
-                    Room room = enrollment.getRoom();
-                    roomId = String.valueOf(room.getRoomId());
-                    roomTitle = room.getTitle();
+                    long rId = enrollment.getRoom().getRoomId();
+                    roomId = String.valueOf(rId);
+                    
+                    if (roomTitleCache.containsKey(rId)) {
+                        roomTitle = roomTitleCache.get(rId);
+                    } else {
+                        Room room = roomService.findById(rId);
+                        if (room != null) {
+                            roomTitle = room.getTitle();
+                            roomTitleCache.put(rId, roomTitle);
+                        }
+                    }
 
                     // Fetch the full exam object to avoid LazyInitializationException
-                    Exam exam = takeExamService.selectExamOfRoom(room.getRoomId());
+                    Exam exam = takeExamService.selectExamOfRoom(rId);
                     if (exam != null) {
                         maxScore = exam.getTotalScore();
                     }
