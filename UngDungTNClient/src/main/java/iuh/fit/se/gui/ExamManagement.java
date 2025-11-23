@@ -194,7 +194,7 @@ public class ExamManagement extends JFrame {
             this.dispose();
             // Assuming MenuAdmin is for admins and MenuHost for hosts.
             // You might need to adjust this logic based on your application's roles.
-             if (loginUser.isHost()) { // A simple check, might need to be more robust
+             if (loginUser.isHost()&&!loginUser.getUserId().equals("admin")) { // A simple check, might need to be more robust
                 new MenuHost(loginUser);
             } else {
                 new MenuAdmin(loginUser);

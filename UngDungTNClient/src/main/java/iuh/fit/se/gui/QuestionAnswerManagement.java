@@ -184,14 +184,13 @@ public class QuestionAnswerManagement extends JFrame {
     }
 
     private void handleTableRowSelection() {
-        resetInputFields();
         textfieldQuestionAnswerIDViewQuestionAnswerManagement.setEnabled(false);
 
-        int modelRow = tableViewQuestionAnswerManagement.getSelectedRow();
-        if(modelRow != -1) {
-            int viewRow = tableViewQuestionAnswerManagement.convertRowIndexToModel(modelRow);
-            if(viewRow >= 0 && viewRow < answerList.size()) {
-                chosenAnswer = answerList.get(viewRow);
+        int viewRow = tableViewQuestionAnswerManagement.getSelectedRow();
+        if(viewRow != -1) {
+            int modelRow = tableViewQuestionAnswerManagement.convertRowIndexToModel(viewRow);
+            if(modelRow >= 0 && modelRow < answerList.size()) {
+                chosenAnswer = answerList.get(modelRow);
                 textfieldQuestionAnswerIDViewQuestionAnswerManagement.setText(
                         String.valueOf(chosenAnswer.getQuestionAnswerId())
                 );

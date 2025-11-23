@@ -197,7 +197,7 @@ public class QuestionManagement extends JFrame {
 
         buttonBackViewQuestionManagement.addActionListener(e -> {
             this.dispose();
-             if (loginUser.isHost()) { 
+             if (loginUser.isHost()&&!loginUser.getUserId().equals("admin")) {
                 new MenuHost(loginUser);
             } else {
                 new MenuAdmin(loginUser);
